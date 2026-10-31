@@ -78,6 +78,24 @@ features/<기능>/
 - 서버 데이터는 TanStack Query, 로그인 토큰·UI 상태 등 클라이언트 전역 상태는 Zustand로 관리합니다.
 - 패키지 추가 시 `npx expo install <패키지>` 를 사용하면 SDK에 맞는 버전이 설치됩니다.
 
+## 브랜드 컬러
+
+[tailwind.config.js](tailwind.config.js)에서 관리합니다. 색을 바꿀 때는 이 파일만 수정하면 됩니다.
+
+| 이름 | 컬러           | 대표색 (400) |
+| ---- | -------------- | ------------ |
+| `bp` | Bubblegum Pink | `#FF5FA2`    |
+| `gb` | Gacha Blue     | `#4AA8F5`    |
+| `lp` | Lime Pop       | `#C8F03C`    |
+
+각 컬러는 50~950 단계가 있고, 단계를 생략하면 대표색이 적용됩니다.
+
+```tsx
+<View className="bg-bp" />        {/* 대표색 */}
+<Text className="text-gb-600" />  {/* 단계 지정 */}
+<View className="bg-lp-400/50" /> {/* 투명도 */}
+```
+
 ## 협업 규칙
 
 브랜치 전략, 이슈 → 브랜치 자동 생성, CI는 [CONTRIBUTING.md](CONTRIBUTING.md)를 참고하세요.
