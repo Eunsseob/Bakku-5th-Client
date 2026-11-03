@@ -96,6 +96,27 @@ features/<기능>/
 <View className="bg-lp-400/50" /> {/* 투명도 */}
 ```
 
+## 텍스트 스타일
+
+폰트는 **Pretendard**(400·500·600·700)이고, [src/app/_layout.tsx](src/app/_layout.tsx)에서 앱 시작 시 불러옵니다. 크기·행간은 디자인 시스템 Product 표 기준으로 [tailwind.config.js](tailwind.config.js)에 있습니다.
+
+디자인 명칭 `title/6` → 클래스 `text-title-6` 처럼 `/`를 `-`로 바꿔 씁니다.
+
+| 그룹   | 클래스                                                                    |
+| ------ | ------------------------------------------------------------------------- |
+| title  | `text-title-6` ~ `text-title-1` (40px ~ 18px)                             |
+| label  | `text-label-lg` / `-md` / `-sm` / `-xs` / `-2xs`                          |
+| body   | `text-body-lg` / `-md` / `-sm` / `-xs` / `-2xs`                           |
+| syntax | `text-syntax-lg` / `-md` / `-sm` / `-xs` (고정폭 `font-mono`와 함께 사용) |
+
+```tsx
+<Text className="font-sans text-title-6 font-bold">제목</Text>
+<Text className="font-sans text-body-md">본문</Text>
+<Text className="font-mono text-syntax-sm">code</Text>
+```
+
+React Native에는 기본 폰트 설정이 없어서 `Text`마다 `font-sans`를 붙여야 Pretendard가 적용됩니다. 굵기는 `font-normal` / `font-medium` / `font-semibold` / `font-bold`를 씁니다.
+
 ## 협업 규칙
 
 브랜치 전략, 이슈 → 브랜치 자동 생성, CI는 [CONTRIBUTING.md](CONTRIBUTING.md)를 참고하세요.
