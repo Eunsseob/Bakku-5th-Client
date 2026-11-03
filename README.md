@@ -117,6 +117,24 @@ features/<기능>/
 
 React Native에는 기본 폰트 설정이 없어서 `Text`마다 `font-sans`를 붙여야 Pretendard가 적용됩니다. 굵기는 `font-normal` / `font-medium` / `font-semibold` / `font-bold`를 씁니다.
 
+## 공통 컴포넌트
+
+[src/shared/components](src/shared/components)에서 가져다 씁니다.
+
+```tsx
+import { Button, Chip, Tag } from '@/shared/components';
+
+<Tag variant="accentSoft">텍스트</Tag>
+<Button variant="accent" onPress={submit}>작성 완료</Button>
+<Chip variant="outlined" size="md" selected suffixVisible>필터</Chip>
+```
+
+| 컴포넌트 | 주요 props                                                                                                                       |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `Tag`    | `variant`: accent · primary · secondary · accentSoft · accentOutline · primarySoft · secondaryOutline                            |
+| `Button` | `variant`: primary · secondary · accent, `size`: sm · md · lg (sm·lg는 primary 전용), `disabled`, `prefixIcon` · `suffixIcon`    |
+| `Chip`   | `variant`: filled · outlined, `size`: xl · lg · md, `selected`, `suffixVisible`(화살표), `prefixIcon`(suffixVisible일 때만 표시) |
+
 ## 협업 규칙
 
 브랜치 전략, 이슈 → 브랜치 자동 생성, CI는 [CONTRIBUTING.md](CONTRIBUTING.md)를 참고하세요.
