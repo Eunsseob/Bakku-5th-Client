@@ -78,6 +78,63 @@ features/<기능>/
 - 서버 데이터는 TanStack Query, 로그인 토큰·UI 상태 등 클라이언트 전역 상태는 Zustand로 관리합니다.
 - 패키지 추가 시 `npx expo install <패키지>` 를 사용하면 SDK에 맞는 버전이 설치됩니다.
 
+## 브랜드 컬러
+
+[tailwind.config.js](tailwind.config.js)에서 관리합니다. 색을 바꿀 때는 이 파일만 수정하면 됩니다.
+
+| 이름 | 컬러           | 대표색 (400) |
+| ---- | -------------- | ------------ |
+| `bp` | Bubblegum Pink | `#FF5FA2`    |
+| `gb` | Gacha Blue     | `#4AA8F5`    |
+| `lp` | Lime Pop       | `#C8F03C`    |
+
+각 컬러는 50~950 단계가 있고, 단계를 생략하면 대표색이 적용됩니다.
+
+```tsx
+<View className="bg-bp" />        {/* 대표색 */}
+<Text className="text-gb-600" />  {/* 단계 지정 */}
+<View className="bg-lp-400/50" /> {/* 투명도 */}
+```
+
+## 텍스트 스타일
+
+폰트는 **Pretendard**(400·500·600·700)이고, [src/app/_layout.tsx](src/app/_layout.tsx)에서 앱 시작 시 불러옵니다. 크기·행간은 디자인 시스템 Product 표 기준으로 [tailwind.config.js](tailwind.config.js)에 있습니다.
+
+디자인 명칭 `title/6` → 클래스 `text-title-6` 처럼 `/`를 `-`로 바꿔 씁니다.
+
+| 그룹   | 클래스                                                                    |
+| ------ | ------------------------------------------------------------------------- |
+| title  | `text-title-6` ~ `text-title-1` (40px ~ 18px)                             |
+| label  | `text-label-lg` / `-md` / `-sm` / `-xs` / `-2xs`                          |
+| body   | `text-body-lg` / `-md` / `-sm` / `-xs` / `-2xs`                           |
+| syntax | `text-syntax-lg` / `-md` / `-sm` / `-xs` (고정폭 `font-mono`와 함께 사용) |
+
+```tsx
+<Text className="font-sans text-title-6 font-bold">제목</Text>
+<Text className="font-sans text-body-md">본문</Text>
+<Text className="font-mono text-syntax-sm">code</Text>
+```
+
+React Native에는 기본 폰트 설정이 없어서 `Text`마다 `font-sans`를 붙여야 Pretendard가 적용됩니다. 굵기는 `font-normal` / `font-medium` / `font-semibold` / `font-bold`를 씁니다.
+
+## 공통 컴포넌트
+
+[src/shared/components](src/shared/components)에서 가져다 씁니다.
+
+```tsx
+import { Button, Chip, Tag } from '@/shared/components';
+
+<Tag variant="accentSoft">텍스트</Tag>
+<Button variant="accent" onPress={submit}>작성 완료</Button>
+<Chip variant="outlined" size="md" selected suffixVisible>필터</Chip>
+```
+
+| 컴포넌트 | 주요 props                                                                                                                       |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `Tag`    | `variant`: accent · primary · secondary · accentSoft · accentOutline · primarySoft · secondaryOutline                            |
+| `Button` | `variant`: primary · secondary · accent, `size`: sm · md · lg (sm·lg는 primary 전용), `disabled`, `prefixIcon` · `suffixIcon`    |
+| `Chip`   | `variant`: filled · outlined, `size`: xl · lg · md, `selected`, `suffixVisible`(화살표), `prefixIcon`(suffixVisible일 때만 표시) |
+
 ## 협업 규칙
 
 브랜치 전략, 이슈 → 브랜치 자동 생성, CI는 [CONTRIBUTING.md](CONTRIBUTING.md)를 참고하세요.
