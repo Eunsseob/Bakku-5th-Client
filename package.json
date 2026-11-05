@@ -4,6 +4,8 @@
   "main": "expo-router/entry",
   "dependencies": {
     "@expo/ui": "~58.0.20",
+    "@react-native-seoul/kakao-login": "^6.0.4",
+    "@react-native-seoul/naver-login": "^5.0.1",
     "@tanstack/react-query": "^5.104.4",
     "axios": "^1.20.0",
     "babel-preset-expo": "~58.0.0",

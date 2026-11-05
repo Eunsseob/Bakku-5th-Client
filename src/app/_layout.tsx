@@ -38,7 +38,9 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Stack />
+      <Stack>
+        <Stack.Screen name="(auth)/welcome" options={{ headerShown: false }} />
+      </Stack>
     </QueryClientProvider>
   );
 }
