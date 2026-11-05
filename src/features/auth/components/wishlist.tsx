@@ -1,5 +1,5 @@
-import { router } from "expo-router";
-import { Pressable, Text, View } from "react-native";
+import { router } from 'expo-router';
+import { Pressable, Text, View } from 'react-native';
 
 export default function Wishlist() {
   return (
@@ -8,9 +8,9 @@ export default function Wishlist() {
       <Pressable
         className="mt-6 rounded-lg bg-blue-500 px-4 py-3"
         onPress={() => router.replace('/welcome')}
-    >
+      >
         <Text className="text-white">환영합니다</Text>
-    </Pressable>
+      </Pressable>
     </View>
   );
 }

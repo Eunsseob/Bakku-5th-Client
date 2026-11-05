@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from 'react-native';
 
 export default function Onboarding() {
   return (
