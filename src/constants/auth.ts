@@ -5,7 +5,7 @@ export const MOCK_PROFILE = {
   nickname: '',
   introduction: '',
   birthDate: '',
-  gender: null as 'male' | 'female' | null,
+  gender: undefined as 'male' | 'female' | null | undefined,
 };
 
 export const GENDER_OPTIONS = [
