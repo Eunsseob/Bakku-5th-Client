@@ -1,6 +1,5 @@
 import { Modal, Text, View } from 'react-native';
 
-
 type Props = {
   visible: boolean;
   onChoose: (allowed: boolean) => void;
