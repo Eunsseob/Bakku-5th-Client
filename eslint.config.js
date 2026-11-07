@@ -9,4 +9,22 @@ module.exports = defineConfig([
   {
     ignores: ['dist/*', '.expo/*'],
   },
+  {
+    rules: {
+      // phosphor-react-native 루트 import는 아이콘 전체(약 6MB)를 번들에 넣는다. 타입 import는 괜찮다.
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'phosphor-react-native',
+              allowTypeImports: true,
+              message:
+                "아이콘별 경로로 import 하세요. 예) import { HeartIcon } from 'phosphor-react-native/src/icons/Heart';",
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);
