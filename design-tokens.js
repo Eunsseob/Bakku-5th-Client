@@ -193,4 +193,14 @@ const typography = {
   'syntax-xs': [12, 16, 0],
 };
 
-module.exports = { primitive, semantic, typography };
+// semantic/radius/* (px). 클래스: rounded-16, rounded-max
+const radius = { 0: 0, 2: 2, 4: 4, 6: 6, 8: 8, 10: 10, 12: 12, 16: 16, 24: 24, 32: 32, max: 9999 };
+
+// semantic/shadow/* (Elevation). RN 0.76+ 의 boxShadow 스타일로 쓴다. 예) style={shadow[2]}
+const shadow = {
+  1: { boxShadow: '0px 1px 4px 0px #01020f14' },
+  2: { boxShadow: '0px 2px 10px 0px #01020f1a' },
+  3: { boxShadow: '0px 4px 16px 0px #01020f1f' },
+};
+
+module.exports = { primitive, semantic, typography, radius, shadow };

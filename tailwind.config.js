@@ -1,6 +1,6 @@
 const { platformSelect } = require('nativewind/theme');
 
-const { primitive, semantic, typography } = require('./design-tokens');
+const { primitive, semantic, typography, radius } = require('./design-tokens');
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -22,6 +22,10 @@ module.exports = {
         sans: ['Pretendard'],
         mono: [platformSelect({ ios: 'Menlo', android: 'monospace', default: 'monospace' })],
       },
+      // semantic/radius/16 → rounded-16 (기존 rounded-lg 등도 그대로 쓸 수 있다)
+      borderRadius: Object.fromEntries(
+        Object.entries(radius).map(([name, value]) => [name, `${value}px`]),
+      ),
       // 텍스트 스타일. 디자인 명칭 title/6 → text-title-6
       fontSize: Object.fromEntries(
         Object.entries(typography).map(([name, [size, lineHeight, letterSpacing]]) => [
