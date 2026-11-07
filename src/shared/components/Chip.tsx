@@ -1,90 +1,88 @@
-import type { ReactNode } from 'react';
-import { Pressable, type PressableProps, Text, View } from 'react-native';
+import { semantic } from '@/design-tokens';
+import { CaretDownIcon } from 'phosphor-react-native/src/icons/CaretDown';
+import { Pressable, type PressableProps, Text } from 'react-native';
 
-export type ChipVariant = 'filled' | 'outlined';
-export type ChipSize = 'xl' | 'lg' | 'md';
+import { Icon, type IconSize } from './Icon';
+
+// BDS Chip: 적용한 필터·정렬 조건을 보여주는 칩
+export type ChipHierarchy = 'accent' | 'primary' | 'secondary';
+export type ChipVariant = 'solid' | 'outlined';
+export type ChipSize = 'lg' | 'md' | 'sm';
 
 type ChipProps = Omit<PressableProps, 'children'> & {
   children: string;
-  selected?: boolean;
+  hierarchy?: ChipHierarchy;
+  /** outlined 는 primary·secondary 에서만 정의되어 있다 */
   variant?: ChipVariant;
   size?: ChipSize;
-  /** 텍스트 뒤 아래 방향 화살표 표시 */
-  suffixVisible?: boolean;
-  /** 텍스트 앞 아이콘. 디자인 규칙상 suffixVisible이 true일 때만 표시된다. */
-  prefixIcon?: ReactNode;
+  /** 텍스트 뒤 아래 방향 화살표 */
+  trailingIconVisible?: boolean;
   className?: string;
 };
 
-const SIZE_STYLES: Record<ChipSize, { container: string; text: string; icon: string }> = {
-  xl: { container: 'h-10 px-4', text: 'text-label-md', icon: 'size-4' },
-  lg: { container: 'h-[38px] px-3.5', text: 'text-label-md', icon: 'size-4' },
-  md: { container: 'h-8 px-3', text: 'text-label-sm', icon: 'size-3.5' },
+const { accent, object } = semantic;
+
+type Colors = { container: string; text: string; icon: string };
+
+const SOLID: Record<ChipHierarchy, Colors> = {
+  accent: {
+    container: 'bg-accent-bold',
+    text: 'font-medium text-object-inverse-boldest',
+    icon: accent.alternative,
+  },
+  primary: {
+    container: 'bg-fill-boldest',
+    text: 'font-medium text-object-inverse-boldest',
+    icon: object.inverse.assistive,
+  },
+  secondary: {
+    container: 'bg-fill-subtlest',
+    text: 'font-normal text-object-normal',
+    icon: object.subtle,
+  },
 };
 
-function getColorStyles(variant: ChipVariant, selected: boolean) {
-  if (variant === 'filled') {
-    return selected
-      ? { container: 'bg-gray-700', text: 'text-white', icon: 'border-white' }
-      : { container: 'bg-gray-100', text: 'text-gray-700', icon: 'border-gray-400' };
-  }
-  return selected
-    ? {
-        container: 'border border-gray-700 bg-gray-100',
-        text: 'text-gray-700',
-        icon: 'border-gray-500',
-      }
-    : {
-        container: 'border border-gray-300 bg-white',
-        text: 'text-gray-700',
-        icon: 'border-gray-400',
-      };
-}
+const OUTLINED: Record<Exclude<ChipHierarchy, 'accent'>, Colors> = {
+  primary: {
+    container: 'border border-stroke-alpha-subtle',
+    text: 'font-normal text-object-normal',
+    icon: object.subtle,
+  },
+  secondary: {
+    container: 'border border-stroke-alpha-subtler',
+    text: 'font-normal text-object-normal',
+    icon: object.subtle,
+  },
+};
 
-function Chevron({
-  boxClassName,
-  colorClassName,
-}: {
-  boxClassName: string;
-  colorClassName: string;
-}) {
-  return (
-    <View className={`items-center justify-center ${boxClassName}`}>
-      <View
-        className={`-mt-1 size-[7px] rotate-45 border-b-[1.5px] border-r-[1.5px] ${colorClassName}`}
-      />
-    </View>
-  );
-}
+const SIZES: Record<ChipSize, { container: string; icon: IconSize }> = {
+  lg: { container: 'h-10 px-4', icon: 'sm' },
+  md: { container: 'h-9 px-3.5', icon: 'sm' },
+  sm: { container: 'h-8 px-3', icon: 'xs' },
+};
 
 export function Chip({
   children,
-  selected = false,
-  variant = 'filled',
-  size = 'xl',
-  suffixVisible = false,
-  prefixIcon,
+  hierarchy = 'secondary',
+  variant = 'solid',
+  size = 'lg',
+  trailingIconVisible = false,
   className,
   ...pressableProps
 }: ChipProps) {
-  const sizeStyles = SIZE_STYLES[size];
-  const colorStyles = getColorStyles(variant, selected);
+  const colors =
+    variant === 'outlined' && hierarchy !== 'accent' ? OUTLINED[hierarchy] : SOLID[hierarchy];
+  const sizes = SIZES[size];
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ selected }}
-      className={`flex-row items-center gap-1 self-start rounded-full ${sizeStyles.container} ${colorStyles.container} ${className ?? ''}`}
+      className={`flex-row items-center justify-center gap-1 self-start rounded-full ${sizes.container} ${colors.container} ${className ?? ''}`}
       {...pressableProps}
     >
-      {suffixVisible && prefixIcon ? (
-        <View className={`items-center justify-center ${sizeStyles.icon}`}>{prefixIcon}</View>
-      ) : null}
-      <Text className={`font-sans font-medium ${sizeStyles.text} ${colorStyles.text}`}>
-        {children}
-      </Text>
-      {suffixVisible ? (
-        <Chevron boxClassName={sizeStyles.icon} colorClassName={colorStyles.icon} />
+      <Text className={`font-sans text-label-md ${colors.text}`}>{children}</Text>
+      {trailingIconVisible ? (
+        <Icon icon={CaretDownIcon} size={sizes.icon} color={colors.icon} />
       ) : null}
     </Pressable>
   );

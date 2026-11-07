@@ -104,7 +104,12 @@ export default function Wishlist() {
               style={{ ...font, paddingVertical: 0, lineHeight: 20 }}
               className="h-12 min-w-0 flex-1 rounded-[8px] border-2 border-[#BFBFC7] bg-white px-3 text-[14px] text-[#2E2E33]"
             />
-            <Button variant="secondary" onPress={add} className="!h-12 w-[68px] shrink-0">
+            <Button
+              hierarchy="secondary"
+              variant="outlined"
+              onPress={add}
+              className="!h-12 w-[68px] shrink-0"
+            >
               추가
             </Button>
           </View>
@@ -121,9 +126,8 @@ export default function Wishlist() {
             {keywords.map((keyword) => (
               <Chip
                 key={keyword}
-                variant="filled"
+                hierarchy="primary"
                 size="md"
-                selected
                 accessibilityRole="button"
                 accessibilityLabel={`${keyword} 키워드 삭제`}
                 onPress={() => {
@@ -143,7 +147,7 @@ export default function Wishlist() {
       </ScrollView>
       <View className="px-[21px] pt-3" style={{ paddingBottom: Math.max(16, 49 - insets.bottom) }}>
         <Button
-          variant="primary"
+          hierarchy="primary"
           accessibilityRole="button"
           accessibilityState={{ disabled: keywords.length === 0 }}
           disabled={keywords.length === 0}

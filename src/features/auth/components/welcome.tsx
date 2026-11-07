@@ -70,7 +70,7 @@ export default function Welcome() {
         style={{ paddingBottom: Math.max(16, 34 - insets.bottom) }}
       >
         <Button
-          variant="primary"
+          hierarchy="primary"
           accessibilityRole="button"
           onPress={() => router.replace('../home')}
           className="w-full max-w-[320px] self-center"
@@ -78,7 +78,8 @@ export default function Welcome() {
           교환글 보러 가기
         </Button>
         <Button
-          variant="secondary"
+          hierarchy="secondary"
+          variant="outlined"
           accessibilityRole="button"
           onPress={() => Alert.alert('내 교환글 올리기', '교환글 작성 화면은 준비 중이에요.')}
           className="w-full max-w-[320px] self-center"
