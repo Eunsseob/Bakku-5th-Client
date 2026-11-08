@@ -14,7 +14,19 @@ export default function MainTabBar({ active }: { active: MainTab }) {
   return (
     <View className="h-16 shrink-0 flex-row border-t-2 border-[#E0E0E6] bg-white">
       {tabs.map((tab) => (
-        <Link key={tab.id} href={tab.href} replace asChild>
+        // 11.06 현재 선택된 탭이면 이동을 막는 처리 코드 수정
+        // <Link key={tab.id} href={tab.href} replace asChild>
+        <Link
+          key={tab.id}
+          href={tab.href}
+          replace
+          asChild
+          onPress={(event) => {
+            if (active === tab.id) {
+              event.preventDefault();
+            }
+          }}
+        >
           <Pressable
             accessibilityRole="tab"
             accessibilityState={{ selected: active === tab.id }}
