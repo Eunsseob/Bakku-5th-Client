@@ -140,7 +140,7 @@ export default function Terms() {
       </ScrollView>
       <View className="px-[21px] pt-3" style={{ paddingBottom: Math.max(16, 35 - insets.bottom) }}>
         <Button
-          variant="primary"
+          hierarchy="primary"
           accessibilityRole="button"
           accessibilityState={{ disabled: !canContinue }}
           disabled={!canContinue}

@@ -145,7 +145,8 @@ export default function Profile({ onBack }: ProfileProps) {
                 return (
                   <Chip
                     key={option.value ?? 'none'}
-                    variant={selected ? 'filled' : 'outlined'}
+                    hierarchy={selected ? 'primary' : 'secondary'}
+                    variant={selected ? 'solid' : 'outlined'}
                     size="md"
                     className="justify-center"
                     style={{
@@ -153,7 +154,6 @@ export default function Profile({ onBack }: ProfileProps) {
                       height: 34,
                       paddingHorizontal: 0,
                     }}
-                    selected={selected}
                     accessibilityRole="radio"
                     accessibilityState={{ checked: selected }}
                     onPress={() =>
@@ -174,7 +174,7 @@ export default function Profile({ onBack }: ProfileProps) {
       </ScrollView>
       <View className="px-[21px] pt-3" style={{ paddingBottom: Math.max(16, 35 - insets.bottom) }}>
         <Button
-          variant="primary"
+          hierarchy="primary"
           accessibilityRole="button"
           accessibilityState={{ disabled: !canContinue }}
           disabled={!canContinue}

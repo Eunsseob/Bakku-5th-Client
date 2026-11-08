@@ -121,7 +121,7 @@ export default function Onboarding() {
       />
       <View className="px-[21px] pt-3" style={{ paddingBottom: Math.max(16, 35 - insets.bottom) }}>
         <Button
-          variant="primary"
+          hierarchy="primary"
           accessibilityRole="button"
           onPress={handleNext}
           className="w-full max-w-[312px] self-center"

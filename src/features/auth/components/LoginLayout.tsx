@@ -55,7 +55,8 @@ export default function LoginLayout({ onKakao, onGoogle, onApple }: LoginLayoutP
         <View className="w-full max-w-[312px] gap-3">
           {providers.map(({ label, onPress }) => (
             <Button
-              variant="secondary"
+              hierarchy="secondary"
+              variant="outlined"
               key={label}
               accessibilityRole="button"
               onPress={onPress}
