@@ -12,7 +12,6 @@ export default function ExchangeMap() {
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let active = true;
-    setLoading(true);
     void (async () => {
       try {
         const permission = await Location.requestForegroundPermissionsAsync();
@@ -43,7 +42,10 @@ export default function ExchangeMap() {
           {!loading && (
             <Pressable
               accessibilityRole="button"
-              onPress={() => setAttempt((value) => value + 1)}
+              onPress={() => {
+                setLoading(true);
+                setAttempt((value) => value + 1);
+              }}
               className="min-h-11 justify-center px-4"
             >
               <Text>다시 시도</Text>

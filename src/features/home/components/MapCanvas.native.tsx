@@ -18,10 +18,15 @@ export default function MapCanvas({
   onZoomChange,
 }: MapCanvasProps) {
   const map = useRef<NaverMapViewRef>(null);
-  const initialCamera = useRef({ ...point, zoom: initialZoom });
+  const [initialCamera] = useState(() => ({ ...point, zoom: initialZoom }));
   const zoom = useRef(initialZoom);
   useEffect(() => {
-    if (preview) map.current?.animateCameraTo({ ...point, duration: 200 });
+    if (preview)
+      map.current?.animateCameraTo({
+        latitude: point.latitude,
+        longitude: point.longitude,
+        duration: 200,
+      });
   }, [preview, point.latitude, point.longitude]);
   const [locating, setLocating] = useState(false);
   const [myLocation, setMyLocation] = useState<MapPoint>();
@@ -66,7 +71,7 @@ export default function MapCanvas({
         ref={map}
         style={{ flex: 1 }}
         locationOverlay={myLocation ? { isVisible: true, position: myLocation } : undefined}
-        initialCamera={initialCamera.current}
+        initialCamera={initialCamera}
         onCameraChanged={(camera) => {
           if (camera.zoom === undefined) return;
           zoom.current = camera.zoom;

@@ -1,4 +1,4 @@
-﻿import { useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Alert } from 'react-native';
 
 import { USE_MOCK_AUTH } from '@/constants/auth';

@@ -46,14 +46,13 @@ export default function LocationSelection({
   const [mapZoom, setMapZoom] = useState(15);
   const [point, setPoint] = useState<MapPoint | undefined>(initialPoint);
   const [confirmedPoint, setConfirmedPoint] = useState<MapPoint | undefined>(initialPoint);
-  const [locating, setLocating] = useState(false);
+  const [locating, setLocating] = useState(() => !initialPoint && !initialLocation);
   const [selected, setSelected] = useState(initialLocation);
   const [detail, setDetail] = useState(initialDetail);
   const userSelected = useRef(false);
   useEffect(() => {
     if (initialPoint || initialLocation) return;
     let active = true;
-    setLocating(true);
     void (async () => {
       try {
         const permission = await Location.requestForegroundPermissionsAsync();
