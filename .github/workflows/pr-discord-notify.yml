@@ -1,0 +1,93 @@
+name: PR Discord Notify
+
+# PR 이 열리거나(다시 열림·리뷰 준비 완료 포함) 머지·닫히면
+# 디스코드 "FE - PR 알림" 채널로 알림을 보낸다.
+#
+# 필요한 설정: 저장소 Settings → Secrets and variables → Actions 에
+#   DISCORD_PR_WEBHOOK_URL = 디스코드 채널 웹훅 URL
+#
+# 포크에서 올라온 PR 도 시크릿을 쓸 수 있도록 pull_request_target 을 쓴다.
+# PR 코드는 체크아웃하지 않고 이벤트 정보만 읽으므로 안전하다.
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review, closed]
+
+permissions: {}
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    # 초안(draft) PR 은 리뷰 준비가 끝났을 때만 알린다
+    if: github.event.action == 'closed' || github.event.pull_request.draft == false
+    steps:
+      - uses: actions/github-script@v8
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_PR_WEBHOOK_URL }}
+        with:
+          script: |
+            const webhookUrl = process.env.WEBHOOK_URL;
+            if (!webhookUrl) {
+              core.warning('DISCORD_PR_WEBHOOK_URL 시크릿이 없어 알림을 건너뜁니다.');
+              return;
+            }
+
+            const pr = context.payload.pull_request;
+            const action = context.payload.action;
+
+            const STATUS = {
+              opened: { label: '새 PR', color: 0x3b82f6 },
+              reopened: { label: '다시 열린 PR', color: 0x3b82f6 },
+              ready_for_review: { label: '리뷰 요청', color: 0xf59e0b },
+              merged: { label: '머지 완료', color: 0x8b5cf6 },
+              closed: { label: '닫힌 PR', color: 0x6b7280 },
+            };
+            const key = action === 'closed' ? (pr.merged ? 'merged' : 'closed') : action;
+            const status = STATUS[key];
+
+            const reviewers = (pr.requested_reviewers ?? []).map((user) => user.login);
+            const body = (pr.body ?? '').replace(/<!--[\s\S]*?-->/g, '').trim();
+            const description = body.length > 300 ? `${body.slice(0, 300)}…` : body;
+
+            const fields = [
+              { name: '작성자', value: pr.user.login, inline: true },
+              { name: '브랜치', value: `\`${pr.head.ref}\` → \`${pr.base.ref}\``, inline: true },
+            ];
+            if (key !== 'merged' && key !== 'closed') {
+              fields.push({
+                name: '리뷰어',
+                value: reviewers.length ? reviewers.join(', ') : '지정 안 됨',
+                inline: true,
+              });
+              fields.push({
+                name: '변경',
+                value: `파일 ${pr.changed_files}개 · +${pr.additions} / -${pr.deletions}`,
+                inline: true,
+              });
+            }
+
+            const payload = {
+              username: 'GitHub PR',
+              allowed_mentions: { parse: [] },
+              embeds: [
+                {
+                  author: { name: `[${status.label}] ${context.repo.repo}` },
+                  title: `#${pr.number} ${pr.title}`.slice(0, 256),
+                  url: pr.html_url,
+                  description: description || undefined,
+                  color: status.color,
+                  fields,
+                  thumbnail: { url: pr.user.avatar_url },
+                  timestamp: new Date().toISOString(),
+                },
+              ],
+            };
+
+            const response = await fetch(webhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            });
+            if (!response.ok) {
+              core.setFailed(`디스코드 전송 실패: ${response.status} ${await response.text()}`);
+            }

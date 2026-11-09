@@ -30,7 +30,7 @@ export function Icon({
   icon: Glyph,
   size = 'xl',
   color = semantic.object.boldest,
-  weight = 'regular',
+  weight = 'bold',
 }: IconProps) {
   return <Glyph size={ICON_SIZE[size]} color={color} weight={weight} />;
 }

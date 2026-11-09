@@ -62,7 +62,7 @@ export function Thumbnail({
         <Image source={source} contentFit="cover" style={{ flex: 1 }} />
       ) : (
         <View className="flex-1 items-center justify-center bg-surface-deeper">
-          <ImageSquareIcon size={iconSize} color={semantic.stroke.assistive} />
+          <ImageSquareIcon size={iconSize} color={semantic.stroke.assistive} weight="bold" />
         </View>
       )}
     </View>
