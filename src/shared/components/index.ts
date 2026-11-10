@@ -50,4 +50,4 @@ export {
   type ThumbnailRatio,
   type ThumbnailVariant,
 } from './Thumbnail';
-export { TopNavigation, type TopNavigationAction } from './TopNavigation';
+export { TopNavigation, type TopNavigationAction, type TopNavigationTab } from './TopNavigation';
