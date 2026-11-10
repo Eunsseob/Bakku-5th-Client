@@ -49,12 +49,16 @@ export function NotificationBadge({
   );
 }
 
-/** 24px 아이콘의 오른쪽 위 모서리에 배지를 붙인다 (Figma: 24x20 영역의 우상단 기준). 부모는 아이콘 크기의 relative 영역이어야 한다. */
+/**
+ * 아이콘의 오른쪽 위 모서리에 배지를 붙인다.
+ * Figma: 배지의 가로 중심은 아이콘 오른쪽 끝, 윗변은 아이콘 윗변에 맞춘다.
+ * 부모는 아이콘 크기의 영역이어야 한다 (예: `<View className="size-6">`).
+ */
 export function IconBadgeAnchor({ children }: { children: ReactNode }) {
   return (
     <View
-      className="absolute size-0 items-center justify-center overflow-visible"
-      style={{ left: 24, top: 2, pointerEvents: 'none' }}
+      className="absolute right-0 top-0 w-0 items-center overflow-visible"
+      style={{ pointerEvents: 'none' }}
     >
       {children}
     </View>

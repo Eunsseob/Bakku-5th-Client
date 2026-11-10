@@ -4,6 +4,8 @@ const { primitive, semantic, typography, radius } = require('./design-tokens');
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  // 'media'(기본값)면 NativeWind 웹 런타임이 colorScheme.set을 호출하다 에러를 던진다.
+  darkMode: 'class',
   content: ['./src/**/*.{js,jsx,ts,tsx}'],
   presets: [require('nativewind/preset')],
   theme: {
