@@ -7,6 +7,7 @@ import * as Location from 'expo-location';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, View } from 'react-native';
 import Svg, { Circle, Line } from 'react-native-svg';
+import { MapPinIcon } from 'phosphor-react-native/src/icons/MapPin';
 import type { MapCanvasProps, MapPoint } from './MapCanvas';
 import { getQuickCurrentLocation } from '../utils/currentLocation';
 
@@ -16,20 +17,61 @@ export default function MapCanvas({
   preview = false,
   initialZoom = 15,
   onZoomChange,
+  centerSelection = false,
+  onCameraMove,
+  userLocation,
 }: MapCanvasProps) {
   const map = useRef<NaverMapViewRef>(null);
   const [initialCamera] = useState(() => ({ ...point, zoom: initialZoom }));
   const zoom = useRef(initialZoom);
+  const cameraCenter = useRef(point);
   useEffect(() => {
-    if (preview)
+    if (
+      preview ||
+      (centerSelection &&
+        (cameraCenter.current.latitude !== point.latitude ||
+          cameraCenter.current.longitude !== point.longitude))
+    )
       map.current?.animateCameraTo({
         latitude: point.latitude,
         longitude: point.longitude,
         duration: 200,
       });
-  }, [preview, point.latitude, point.longitude]);
+  }, [preview, centerSelection, point.latitude, point.longitude]);
   const [locating, setLocating] = useState(false);
   const [myLocation, setMyLocation] = useState<MapPoint>();
+  useEffect(() => {
+    if (preview) return;
+    let active = true;
+    let subscription: Location.LocationSubscription | undefined;
+    void (async () => {
+      try {
+        const permission = await Location.getForegroundPermissionsAsync();
+        if (!permission.granted || !active) return;
+        const current = await getQuickCurrentLocation();
+        if (!active) return;
+        setMyLocation({ latitude: current.coords.latitude, longitude: current.coords.longitude });
+        const watcher = await Location.watchPositionAsync(
+          { accuracy: Location.Accuracy.Balanced, distanceInterval: 10, timeInterval: 5000 },
+          (position) => {
+            if (active)
+              setMyLocation({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+              });
+          },
+        );
+        if (active) subscription = watcher;
+        else watcher.remove();
+      } catch {
+        // The explicit current-location button retains the permission/error flow.
+      }
+    })();
+    return () => {
+      active = false;
+      subscription?.remove();
+    };
+  }, [preview]);
   const moveToMyLocation = async () => {
     if (locating) return;
     setLocating(true);
@@ -70,24 +112,70 @@ export default function MapCanvas({
       <NaverMapView
         ref={map}
         style={{ flex: 1 }}
-        locationOverlay={myLocation ? { isVisible: true, position: myLocation } : undefined}
+        locationOverlay={
+          myLocation || userLocation
+            ? { isVisible: true, position: myLocation ?? userLocation! }
+            : undefined
+        }
         initialCamera={initialCamera}
         onCameraChanged={(camera) => {
+          cameraCenter.current = { latitude: camera.latitude, longitude: camera.longitude };
+          if (centerSelection && camera.reason === 'Gesture') onCameraMove?.();
           if (camera.zoom === undefined) return;
           zoom.current = camera.zoom;
           onZoomChange?.(camera.zoom);
         }}
+        onCameraIdle={
+          centerSelection
+            ? (camera) => {
+                const coordinate = { latitude: camera.latitude, longitude: camera.longitude };
+                cameraCenter.current = coordinate;
+                onSelect?.(coordinate);
+              }
+            : undefined
+        }
         isScrollGesturesEnabled={!preview}
         isZoomGesturesEnabled={!preview}
         onTapMap={onSelect}
         onTapSymbol={(symbol) => onSelect?.(symbol)}
       >
-        <NaverMapMarkerOverlay
-          latitude={point.latitude}
-          longitude={point.longitude}
-          caption={{ text: '선택한 위치' }}
-        />
+        {!centerSelection && (
+          <NaverMapMarkerOverlay
+            latitude={point.latitude}
+            longitude={point.longitude}
+            caption={{ text: '선택한 위치' }}
+          />
+        )}
       </NaverMapView>
+      {centerSelection && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            width: 56,
+            height: 56,
+            transform: [{ translateX: -28 }, { translateY: -56 }],
+          }}
+        >
+          <View
+            style={{
+              position: 'absolute',
+              left: 18.67,
+              top: 11.67,
+              width: 21,
+              height: 21,
+              borderRadius: 10.5,
+              backgroundColor: '#FFFFFF',
+              zIndex: 0,
+            }}
+          />
+          <View style={{ zIndex: 1 }}>
+            <MapPinIcon size={56} weight="fill" color="#364153" />
+          </View>
+        </View>
+      )}
       {!preview && (
         <Pressable
           accessibilityRole="button"
@@ -95,7 +183,7 @@ export default function MapCanvas({
           accessibilityState={{ busy: locating, disabled: locating }}
           disabled={locating}
           onPress={moveToMyLocation}
-          className="absolute bottom-6 right-4 h-12 w-12 items-center justify-center rounded-full border border-[#E0E0E6] bg-white shadow-md"
+          className="absolute bottom-6 right-4 h-[52px] w-[52px] items-center justify-center rounded-full border border-[#E0E0E6] bg-white shadow-md"
         >
           {locating ? (
             <ActivityIndicator color="#2E2E33" />

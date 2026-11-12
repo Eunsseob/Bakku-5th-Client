@@ -7,6 +7,9 @@ export type MapCanvasProps = {
   preview?: boolean;
   initialZoom?: number;
   onZoomChange?: (zoom: number) => void;
+  centerSelection?: boolean;
+  onCameraMove?: () => void;
+  userLocation?: MapPoint;
 };
 export default function MapCanvas(_props: MapCanvasProps) {
   return (

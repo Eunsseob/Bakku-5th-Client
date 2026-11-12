@@ -1,31 +1,43 @@
-import MapCanvas, { type MapPoint } from './MapCanvas';
+import { Button } from '@/shared/components/Button';
+import { Chip } from '@/shared/components/Chip';
+import { Icon } from '@/shared/components/Icon';
+import { TopNavigation } from '@/shared/components/TopNavigation';
 import * as Location from 'expo-location';
-import { getQuickCurrentLocation } from '../utils/currentLocation';
+import { MagnifyingGlassIcon } from 'phosphor-react-native/src/icons/MagnifyingGlass';
 import { useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
-  Linking,
+  Keyboard,
   Modal,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const font = { fontFamily: 'Pretendard', includeFontPadding: false };
+import { getQuickCurrentLocation } from '../utils/currentLocation';
+import { searchPlaces } from '../api/placeSearch';
+import MapCanvas, { type MapPoint } from './MapCanvas';
+import LocationSearch from './LocationSearch';
+
 const hubs = [
-  { name: '홍대', places: ['홍대입구역 9번 출구', '홍대 가챠샵'] },
-  { name: '용산', places: ['용산역', '아이파크몰'] },
-  { name: '건대·성수', places: ['건대입구역', '성수역'] },
-  { name: '신도림', places: ['신도림역', '테크노마트'] },
-  { name: '국전', places: ['남부터미널역', '국제전자센터'] },
+  { label: '홍대', query: '서울 홍대입구역' },
+  { label: '용산', query: '서울 용산역' },
+  { label: '건대·성수', query: '서울 건대입구역' },
+  { label: '신도림', query: '서울 신도림역' },
+  { label: '국전', query: '서울 서초구 효령로 304' },
 ];
-const inputClass =
-  'h-12 rounded-lg border-2 border-[#BFBFC7] px-3 text-[14px] leading-5 text-[#2E2E33]';
+
+type LocationSelectionProps = {
+  initialLocation: string;
+  initialDetail: string;
+  initialPoint?: MapPoint;
+  onClose: () => void;
+  onConfirm: (location: string, detail: string, point?: MapPoint) => void;
+};
 
 export default function LocationSelection({
   initialLocation,
@@ -33,39 +45,64 @@ export default function LocationSelection({
   initialPoint,
   onClose,
   onConfirm,
-}: {
-  initialLocation: string;
-  initialDetail: string;
-  initialPoint?: MapPoint;
-  onClose: () => void;
-  onConfirm: (location: string, detail: string, point?: MapPoint) => void;
-}) {
+}: LocationSelectionProps) {
   const insets = useSafeAreaInsets();
+  const [point, setPoint] = useState<MapPoint>(
+    initialPoint ?? { latitude: 37.5665, longitude: 126.978 },
+  );
   const [query, setQuery] = useState('');
-  const [mapOpen, setMapOpen] = useState(false);
-  const [mapZoom, setMapZoom] = useState(15);
-  const [point, setPoint] = useState<MapPoint | undefined>(initialPoint);
-  const [confirmedPoint, setConfirmedPoint] = useState<MapPoint | undefined>(initialPoint);
-  const [locating, setLocating] = useState(() => !initialPoint && !initialLocation);
-  const [selected, setSelected] = useState(initialLocation);
-  const [detail, setDetail] = useState(initialDetail);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [selectedHub, setSelectedHub] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [locating, setLocating] = useState(!initialPoint);
+  const [locationError, setLocationError] = useState('');
+  const [currentLocation, setCurrentLocation] = useState<MapPoint>();
+  const [moving, setMoving] = useState(false);
+  const [address, setAddress] = useState({
+    primary: initialLocation,
+    secondary: initialDetail,
+    ready: !!initialPoint,
+  });
+  const [addressPending, setAddressPending] = useState(!initialPoint);
   const userSelected = useRef(false);
+  const selectedPlace = useRef<{
+    latitude: number;
+    longitude: number;
+    name: string;
+    address: string;
+  } | null>(
+    initialPoint && initialLocation
+      ? { ...initialPoint, name: initialLocation, address: '' }
+      : null,
+  );
+  const searchRequest = useRef(0);
+
   useEffect(() => {
-    if (initialPoint || initialLocation) return;
+    if (initialPoint) return;
     let active = true;
     void (async () => {
       try {
         const permission = await Location.requestForegroundPermissionsAsync();
-        if (!permission.granted) return;
-        const result = await getQuickCurrentLocation();
-        if (!active || userSelected.current) return;
-        const coordinate = { latitude: result.coords.latitude, longitude: result.coords.longitude };
-        setPoint(coordinate);
-        setConfirmedPoint(coordinate);
-        setSelected('현재 위치');
-        setDetail(`${coordinate.latitude.toFixed(5)}, ${coordinate.longitude.toFixed(5)}`);
+        if (!permission.granted) {
+          if (active) setLocationError('현재 위치를 보려면 위치 권한을 허용해 주세요.');
+          return;
+        }
+        const current = await getQuickCurrentLocation();
+        if (active)
+          setCurrentLocation({
+            latitude: current.coords.latitude,
+            longitude: current.coords.longitude,
+          });
+        if (active && !userSelected.current) {
+          setAddressPending(true);
+          setPoint({ latitude: current.coords.latitude, longitude: current.coords.longitude });
+        }
       } catch {
-        // Keep the map empty so an unrelated location cannot be mistaken for GPS.
+        // Keep the map available; its initial center is an overview, not a GPS fix.
+        if (active)
+          setLocationError(
+            '현재 위치를 확인하지 못했어요. 지역을 검색하거나 내 위치 버튼으로 다시 시도해 주세요.',
+          );
       } finally {
         if (active) setLocating(false);
       }
@@ -73,250 +110,234 @@ export default function LocationSelection({
     return () => {
       active = false;
     };
-  }, [initialPoint, initialLocation]);
-  const useCurrentLocation = async () => {
+  }, [initialPoint]);
+
+  useEffect(() => {
+    let active = true;
     if (locating) return;
-    setLocating(true);
+    const timer = setTimeout(() => {
+      void (async () => {
+        const coordinateText = `${point.latitude.toFixed(5)}, ${point.longitude.toFixed(5)}`;
+        let next = { primary: '지도에서 선택한 위치', secondary: coordinateText, ready: true };
+        try {
+          if (Platform.OS !== 'web') {
+            const permission = await Location.requestForegroundPermissionsAsync();
+            if (permission.granted) {
+              const [result] = await Location.reverseGeocodeAsync({
+                latitude: point.latitude,
+                longitude: point.longitude,
+              });
+              if (result) {
+                const region = [
+                  ...new Set([result.region, result.city, result.district].filter(Boolean)),
+                ].join(' ');
+                const street = [result.street, result.streetNumber].filter(Boolean).join(' ');
+                next = {
+                  primary:
+                    [region, result.name || street].filter(Boolean).join(' ') || coordinateText,
+                  secondary: [region, street].filter(Boolean).join(' ') || coordinateText,
+                  ready: true,
+                };
+              }
+            }
+          }
+        } catch {
+          // Coordinates remain selectable when the device address lookup fails.
+        }
+        if (active) {
+          const place = selectedPlace.current;
+          if (
+            place &&
+            Math.abs(place.latitude - point.latitude) < 0.00001 &&
+            Math.abs(place.longitude - point.longitude) < 0.00001
+          ) {
+            next.primary = place.name;
+            if (place.address) next.secondary = place.address;
+          }
+          setAddress(next);
+          setAddressPending(false);
+        }
+      })();
+    }, 350);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [point.latitude, point.longitude, locating]);
+
+  const selectPoint = (coordinate: MapPoint) => {
+    setMoving(false);
+    if (point.latitude === coordinate.latitude && point.longitude === coordinate.longitude) return;
+    userSelected.current = true;
+    setPoint(coordinate);
+    setAddressPending(true);
+  };
+  const search = async (text: string, hub = '') => {
+    if (!text.trim()) return;
+    if (Platform.OS === 'web') {
+      Alert.alert(
+        '장소 검색',
+        '장소 검색과 네이버 지도는 iOS·Android 개발 빌드에서 사용할 수 있어요.',
+      );
+      return;
+    }
+    const request = ++searchRequest.current;
+    userSelected.current = true;
+    setSearching(true);
+    Keyboard.dismiss();
     try {
-      const permission = await Location.requestForegroundPermissionsAsync();
-      if (!permission.granted) {
-        Alert.alert('위치 권한이 필요해요', '설정에서 위치 접근을 허용해 주세요.', [
-          { text: '취소', style: 'cancel' },
-          {
-            text: '설정 열기',
-            onPress: () => {
-              void Linking.openSettings();
-            },
-          },
-        ]);
+      const [result] = await searchPlaces(text.trim());
+      if (request !== searchRequest.current) return;
+      if (!result) {
+        Alert.alert('검색 결과가 없어요', '도로명 주소나 지하철역 이름으로 다시 검색해 주세요.');
         return;
       }
-      if (!(await Location.hasServicesEnabledAsync())) {
-        if (Platform.OS === 'android') {
-          // Ask Android to resolve provider settings rather than stopping on a
-          // provider check that can disagree with the quick-settings toggle.
-          await Location.enableNetworkProviderAsync();
-        } else {
-          Alert.alert(
-            '위치 서비스를 사용할 수 없어요',
-            '설정에서 이 앱의 위치 서비스 접근을 확인해 주세요.',
-          );
-          return;
-        }
-      }
-      const result = await getQuickCurrentLocation();
-      const coordinate = { latitude: result.coords.latitude, longitude: result.coords.longitude };
-      setPoint(coordinate);
-      setConfirmedPoint(coordinate);
-      setSelected('현재 위치');
-      setDetail(`${coordinate.latitude.toFixed(5)}, ${coordinate.longitude.toFixed(5)}`);
-    } catch (error) {
-      const code =
-        typeof error === 'object' && error !== null && 'code' in error
-          ? String(error.code)
-          : 'UNKNOWN';
-      console.warn('Current location request failed:', code);
-      const message =
-        code === 'ERR_LOCATION_SETTINGS_UNSATISFIED'
-          ? 'Android 위치 서비스 활성화가 완료되지 않았어요. 위치 정확도 설정을 확인해 주세요.'
-          : code === 'ERR_LOCATION_UNAUTHORIZED'
-            ? 'Bakku의 위치 권한이 허용되지 않았어요. 앱 설정에서 위치 접근을 허용해 주세요.'
-            : '현재 위치를 확인하지 못했어요. 아래 오류 코드로 원인을 확인할 수 있어요.';
-      Alert.alert('위치를 가져오지 못했어요', `${message}\n오류 코드: ${code}`, [
-        { text: '확인', style: 'cancel' },
-        {
-          text: '앱 설정',
-          onPress: () => {
-            void Linking.openSettings();
-          },
-        },
-      ]);
+      setSelectedHub(hub);
+      selectedPlace.current = result;
+      selectPoint({ latitude: result.latitude, longitude: result.longitude });
+    } catch {
+      if (request === searchRequest.current)
+        Alert.alert('장소를 찾지 못했어요', '주소를 확인하고 다시 검색해 주세요.');
     } finally {
-      setLocating(false);
+      if (request === searchRequest.current) setSearching(false);
     }
   };
-  const results = hubs.filter((hub) =>
-    `${hub.name} ${hub.places.join(' ')}`.includes(query.trim()),
-  );
+
+  const canConfirm =
+    Platform.OS !== 'web' && !locating && address.ready && !addressPending && !moving && !searching;
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <View
       className="flex-1 bg-white"
-      style={{
-        paddingTop: insets.top,
-        paddingBottom: insets.bottom,
-        paddingLeft: insets.left,
-        paddingRight: insets.right,
-      }}
+      style={{ paddingLeft: insets.left, paddingRight: insets.right }}
     >
-      <View className="h-16 items-center justify-center border-b border-[#E0E0E6]">
+      <TopNavigation type="screen" title="교환 장소 설정" onBack={onClose} />
+      <View className="px-4 pb-3 pt-2">
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="희망 장소 선택 취소"
-          onPress={onClose}
-          className="absolute left-2 h-11 w-11 items-center justify-center"
+          accessibilityLabel="장소, 지하철, 주소 검색 열기"
+          onPress={() => setSearchOpen(true)}
+          className="h-10 flex-row items-center gap-2 rounded-lg bg-[#F3F4F6] px-3"
         >
-          <Text style={font} className="text-[28px] text-[#2E2E33]">
-            ‹
+          <Icon icon={MagnifyingGlassIcon} size="lg" color="#99A1AF" />
+          <Text
+            numberOfLines={1}
+            className={`flex-1 font-sans text-[16px] leading-[26px] ${query ? 'text-[#364153]' : 'text-[#99A1AF]'}`}
+          >
+            {query || '장소, 지하철, 주소 검색'}
           </Text>
+          {searching && <ActivityIndicator size="small" color="#364153" />}
         </Pressable>
-        <Text style={font} className="text-[16px] leading-[22px] text-[#2E2E33]">
-          희망 장소
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8, paddingTop: 12 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {hubs.map((hub) => (
+            <Chip
+              key={hub.label}
+              size="sm"
+              hierarchy={selectedHub === hub.label ? 'primary' : 'secondary'}
+              variant={selectedHub === hub.label ? 'solid' : 'outlined'}
+              disabled={searching}
+              onPress={() => {
+                void search(hub.query, hub.label);
+              }}
+              className="!h-[38px] !px-3.5"
+              style={{
+                backgroundColor: selectedHub === hub.label ? '#364153' : '#FFFFFF',
+                borderColor: '#D1D5DC',
+              }}
+            >
+              {hub.label}
+            </Chip>
+          ))}
+        </ScrollView>
+      </View>
+      <View className="flex-1 overflow-hidden">
+        {locating ? (
+          <View className="flex-1 items-center justify-center gap-3 bg-[#F3F4F6]">
+            <ActivityIndicator color="#364153" />
+            <Text className="font-sans text-[14px] text-[#6A7282]">
+              현재 위치를 확인하고 있어요…
+            </Text>
+          </View>
+        ) : (
+          <MapCanvas
+            point={point}
+            userLocation={currentLocation}
+            centerSelection
+            onSelect={selectPoint}
+            onCameraMove={() => {
+              userSelected.current = true;
+              setMoving(true);
+            }}
+          />
+        )}
+        <View pointerEvents="none" className="absolute left-0 right-0 top-8 items-center px-4">
+          <View className="rounded-lg bg-[#364153] px-3 py-[7px]">
+            <Text className="font-sans text-[14px] leading-5 text-white">
+              {locating ? '현재 위치를 찾고 있어요' : '지도를 움직여서 선택해보세요'}
+            </Text>
+          </View>
+        </View>
+      </View>
+      {!!locationError && (
+        <Text className="px-4 pt-2 text-center font-sans text-[12px] leading-[18px] text-[#6A7282]">
+          {locationError}
+        </Text>
+      )}
+      <View className="gap-1 px-4 pb-2 pt-4">
+        <Text
+          numberOfLines={2}
+          className="text-center font-sans text-[16px] leading-[22px] text-[#364153]"
+        >
+          {moving || addressPending ? '선택한 위치를 확인하고 있어요…' : address.primary}
+        </Text>
+        <Text
+          numberOfLines={2}
+          className="text-center font-sans text-[14px] leading-5 text-[#6A7282]"
+        >
+          {moving || addressPending ? '지도를 멈추면 주소가 표시돼요' : address.secondary}
         </Text>
       </View>
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }}
-      >
-        <TextInput
-          accessibilityLabel="장소 검색"
-          value={query}
-          onChangeText={setQuery}
-          placeholder="⌕ 장소 검색 (역 · 매장 이름)"
-          placeholderTextColor="#737380"
-          style={font}
-          className={inputClass}
-          returnKeyType="search"
-        />
-        <Pressable
-          accessibilityRole="button"
-          disabled={locating}
-          accessibilityState={{ busy: locating }}
-          onPress={useCurrentLocation}
-          className="mt-2 h-11 items-center justify-center rounded-[10px] border-2 border-[#BFBFC7]"
+      <View className="px-4 pt-3" style={{ paddingBottom: 8 + insets.bottom }}>
+        <Button
+          hierarchy="primary"
+          disabled={!canConfirm}
+          onPress={() => onConfirm(address.primary, address.secondary, point)}
+          className={`!h-[52px] self-stretch !rounded-xl ${canConfirm ? '!bg-[#364153]' : ''}`}
         >
-          <Text style={font} className="text-[15px] leading-[21px] text-[#2E2E33]">
-            {locating ? '현재 위치를 확인하고 있어요…' : '📍 현재 위치로 설정'}
-          </Text>
-        </Pressable>
-        <Text style={font} className="mb-2 mt-[18px] text-[13px] leading-[18px] text-[#737380]">
-          거점
-        </Text>
-        <View accessibilityRole="radiogroup">
-          {results.map((hub) => (
-            <Pressable
-              key={hub.name}
-              accessibilityRole="radio"
-              accessibilityState={{ checked: selected === hub.name }}
-              onPress={() => {
-                userSelected.current = true;
-                setSelected(hub.name);
-                setConfirmedPoint(undefined);
-                setDetail('');
-              }}
-              className="h-11 flex-row items-center gap-3"
-            >
-              <View
-                className={`h-5 w-5 rounded-full ${selected === hub.name ? 'bg-[#2E2E33]' : 'border-2 border-[#BFBFC7] bg-white'}`}
-              />
-              <Text style={font} className="text-[15px] leading-[21px] text-[#2E2E33]">
-                {hub.name}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        {results.length === 0 && (
-          <Text style={font} className="py-4 text-[13px] text-[#737380]">
-            검색 결과가 없어요. 다른 역·매장 이름으로 검색해 주세요.
-          </Text>
-        )}
-        <Text style={font} className="mb-2 mt-[18px] text-[13px] leading-[18px] text-[#737380]">
-          또는 지도에서 위치 선택
-        </Text>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="네이버 지도 열기"
-          onPress={() => setMapOpen(true)}
-          className="h-[150px] items-center justify-center rounded-[10px] bg-[#E0E0E6]"
-        >
-          <View pointerEvents="none" style={{ width: '100%', height: '100%' }}>
-            {point ? (
-              <MapCanvas point={confirmedPoint ?? point} preview />
-            ) : (
-              <View className="flex-1 items-center justify-center">
-                <Text style={font} className="text-[13px] text-[#737380]">
-                  {locating
-                    ? '현재 위치를 확인하고 있어요…'
-                    : '현재 위치로 설정을 눌러 위치를 확인해 주세요'}
-                </Text>
-              </View>
-            )}
-          </View>
-        </Pressable>
-        <TextInput
-          accessibilityLabel="만날 곳 이름"
-          value={detail}
-          onChangeText={setDetail}
-          maxLength={100}
-          placeholder="만날 곳 이름 (예: 홍대입구역 9번 출구)"
-          placeholderTextColor="#737380"
-          style={font}
-          className={`${inputClass} mt-3`}
-        />
-        <Pressable
-          accessibilityRole="button"
-          disabled={!selected || locating}
-          onPress={() => onConfirm(selected, detail.trim(), confirmedPoint)}
-          className="mt-7 h-[52px] items-center justify-center rounded-[10px] bg-[#2E2E33]"
-        >
-          <Text style={font} className="text-[15px] leading-[21px] text-white">
-            이 위치로 설정
-          </Text>
-        </Pressable>
-      </ScrollView>
+          선택 완료
+        </Button>
+      </View>
       <Modal
-        visible={mapOpen}
+        visible={searchOpen}
         animationType="slide"
         presentationStyle="fullScreen"
-        onRequestClose={() => setMapOpen(false)}
+        onRequestClose={() => setSearchOpen(false)}
       >
-        <View
-          className="flex-1 bg-white"
-          style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
-        >
-          <View className="h-16 flex-row items-center px-4">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="지도 닫기"
-              onPress={() => setMapOpen(false)}
-              className="h-11 w-11 items-center justify-center"
-            >
-              <Text className="text-[26px]">‹</Text>
-            </Pressable>
-            <Text style={font} className="text-[16px]">
-              지도에서 위치 선택
-            </Text>
-          </View>
-          {mapOpen && point && (
-            <MapCanvas
-              point={point}
-              onSelect={setPoint}
-              initialZoom={mapZoom}
-              onZoomChange={setMapZoom}
-            />
-          )}
-          <View className="p-4">
-            <Text style={font} className="mb-3 text-[12px] text-[#737380]">
-              지도를 눌러 만날 위치를 선택해 주세요.
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                if (!point) return;
-                setSelected('지도 선택');
-                setConfirmedPoint(point);
-                setDetail(`${point.latitude.toFixed(5)}, ${point.longitude.toFixed(5)}`);
-                setMapOpen(false);
-              }}
-              className="h-[52px] items-center justify-center rounded-[10px] bg-[#2E2E33]"
-            >
-              <Text style={font} className="text-[15px] text-white">
-                이 위치 선택
-              </Text>
-            </Pressable>
-          </View>
-        </View>
+        {searchOpen && (
+          <LocationSearch
+            initialQuery={query}
+            origin={currentLocation ?? point}
+            onBack={() => setSearchOpen(false)}
+            onSelect={(place) => {
+              selectedPlace.current = place;
+              searchRequest.current++;
+              setSearching(false);
+              setQuery(place.name);
+              setSelectedHub('');
+              selectPoint({ latitude: place.latitude, longitude: place.longitude });
+              if (point.latitude === place.latitude && point.longitude === place.longitude) {
+                setAddress({ primary: place.name, secondary: place.address, ready: true });
+                setAddressPending(false);
+              }
+              setSearchOpen(false);
+            }}
+          />
+        )}
       </Modal>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
