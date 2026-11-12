@@ -5,15 +5,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 type LoginLayoutProps = {
   onKakao: () => void;
   onGoogle: () => void;
-  onApple: () => void;
+  // onApple: () => void;
 };
 
-export default function LoginLayout({ onKakao, onGoogle, onApple }: LoginLayoutProps) {
+// 11. 12 애플 삭제
+export default function LoginLayout({ onKakao, onGoogle}: LoginLayoutProps) {
   const insets = useSafeAreaInsets();
   const providers = [
     { label: '카카오로 시작하기', onPress: onKakao },
     { label: 'Google로 시작하기', onPress: onGoogle },
-    { label: 'Apple로 시작하기', onPress: onApple },
+    // { label: 'Apple로 시작하기', onPress: onApple },
   ];
   return (
     <View

@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+﻿import { useRouter } from 'expo-router';
 import { Alert } from 'react-native';
 
 import { USE_MOCK_AUTH } from '@/constants/auth';
@@ -33,7 +33,6 @@ export default function Login() {
     <LoginLayout
       onKakao={handleKakaoLogin}
       onGoogle={() => handleOtherLogin('Google')}
-      onApple={() => handleOtherLogin('Apple')}
     />
   );
 }
