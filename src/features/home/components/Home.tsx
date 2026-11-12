@@ -1,9 +1,11 @@
 import { router, useFocusEffect } from 'expo-router';
-import { Image } from 'expo-image';
+import HomeHeader, { type MenuAnchor } from './HomeHeader';
+import ExchangePostCard from './ExchangePostCard';
 import { useExchangeStore } from '../store/useExchangeStore';
 import { type ComponentRef, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Alert,
+  BackHandler,
   Modal,
   Pressable,
   RefreshControl,
@@ -15,21 +17,16 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const font = { fontFamily: 'Pretendard', includeFontPadding: false };
-const categories = [
-  { label: '전체', width: 50 },
-  { label: '애니메이션', width: 86 },
-  { label: '아이돌(케이팝)', width: 122 },
-  { label: '스포츠', width: 62 },
-];
 const locations = ['전체', '홍대', '강남', '성수', '잠실'];
 export default function Home() {
   const insets = useSafeAreaInsets();
-  const locationButton = useRef<ComponentRef<typeof View>>(null);
+  const screen = useRef<ComponentRef<typeof View>>(null);
   const sortButton = useRef<ComponentRef<typeof View>>(null);
   const [category, setCategory] = useState('전체');
   const [location, setLocation] = useState('전체');
   const [searchVisible, setSearchVisible] = useState(false);
   const [query, setQuery] = useState('');
+  const [mode, setMode] = useState('\uBAA8\uB4E0 \uAD50\uD658\uAE00');
   const [sort, setSort] = useState('최신순');
   const { posts, setPosts, publishedPostId, dismissPublishedToast } = useExchangeStore();
   useFocusEffect(
@@ -50,26 +47,59 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [refreshing]);
   const [dropdown, setDropdown] = useState<{
-    kind: 'location' | 'sort';
+    kind: 'location' | 'sort' | 'mode';
     x: number;
     y: number;
     width: number;
   } | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      if (!dropdown) return;
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+        setDropdown(null);
+        return true;
+      });
+      return () => subscription.remove();
+    }, [dropdown]),
+  );
   const [menuId, setMenuId] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [title, setTitle] = useState('');
   const [wanted, setWanted] = useState('');
+  const openDropdown = (kind: 'location' | 'mode' | 'sort', anchor: MenuAnchor) => {
+    screen.current?.measureInWindow((screenX, screenY, screenWidth, screenHeight) => {
+      const width = kind === 'sort' ? 120 : 160;
+      const menuHeight =
+        (kind === 'location' ? locations.length : kind === 'mode' ? 3 : 2) * 44 + 2;
+      const x = Math.max(8, Math.min(anchor.x - screenX, screenWidth - width - 8));
+      const below = anchor.y + anchor.height - screenY + 4;
+      const y =
+        below + menuHeight <= screenHeight - 8
+          ? below
+          : Math.max(8, anchor.y - screenY - menuHeight - 4);
+      setDropdown({ kind, x, y, width });
+    });
+  };
   const visiblePosts = posts
     .filter(
       (post) =>
-        (category === '전체' || category === post.category) &&
-        (location === '전체' || location === post.location) &&
+        (category === '전체' ||
+          category === post.category ||
+          (category === '캐릭터' && post.category === '애니메이션') ||
+          (category === '아이돌' && post.category === '아이돌(케이팝)')) &&
+        (mode === '모든 교환글' ||
+          (mode === '지금 교환' ? post.onsite !== false : post.onsite === false)) &&
+        (location === '전체' ||
+          post.location.includes(location) ||
+          !!post.locationDetail?.includes(location)) &&
         `${post.title} ${post.wanted}`.includes(query.trim()),
     )
     .sort((a, b) => (sort === '최신순' ? a.minutes - b.minutes : a.distance - b.distance));
 
   return (
     <View
+      ref={screen}
+      collapsable={false}
       className="flex-1 bg-white"
       style={{
         paddingTop: insets.top,
@@ -77,85 +107,20 @@ export default function Home() {
         paddingRight: insets.right,
       }}
     >
-      <View className="h-[60px] flex-row items-center justify-between px-5">
-        <Text style={font} className="text-[20px] leading-7 text-[#2E2E33]">
-          가챠교환
-        </Text>
-        <View className="flex-row">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="검색"
-            accessibilityState={{ expanded: searchVisible }}
-            onPress={() => setSearchVisible(!searchVisible)}
-            className="h-11 w-11 items-center justify-center"
-          >
-            <Text style={font} className="text-[24px] text-[#2E2E33]">
-              ⌕
-            </Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="알림"
-            onPress={() => Alert.alert('알림', '새로운 알림이 없어요.')}
-            className="h-11 w-11 items-center justify-center"
-          >
-            <Text className="text-[18px]">🔔</Text>
-          </Pressable>
-        </View>
-      </View>
-      {searchVisible && (
-        <TextInput
-          accessibilityLabel="교환할 굿즈 검색"
-          placeholder="굿즈를 검색해 보세요"
-          value={query}
-          onChangeText={setQuery}
-          style={font}
-          className="mx-4 mb-3 h-11 rounded-lg border border-[#BFBFC7] px-3 text-[14px] text-[#2E2E33]"
-          returnKeyType="search"
-        />
-      )}
-      <View className="pb-[10px] pt-3">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
-        >
-          {categories.map((item) => (
-            <Pressable
-              key={item.label}
-              accessibilityRole="button"
-              accessibilityState={{ selected: category === item.label }}
-              onPress={() => setCategory(item.label)}
-              style={{ width: item.width }}
-              className={`h-[34px] items-center justify-center rounded-full border-2 ${category === item.label ? 'border-[#2E2E33] bg-[#2E2E33]' : 'border-[#BFBFC7] bg-white'}`}
-            >
-              <Text
-                style={font}
-                className={`text-[13px] leading-[18px] ${category === item.label ? 'text-white' : 'text-[#2E2E33]'}`}
-              >
-                {item.label}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`거점 ${location}, 변경`}
-          ref={locationButton}
-          accessibilityState={{ expanded: dropdown?.kind === 'location' }}
-          onPress={() =>
-            locationButton.current?.measureInWindow((x, y, width, height) => {
-              setDropdown({ kind: 'location', x, y: y + height + 4, width });
-            })
-          }
-          className="ml-4 mt-2 h-[34px] w-[110px] items-center justify-center rounded-full border-2 border-[#BFBFC7]"
-        >
-          <Text style={font} className="text-[13px] leading-[18px] text-[#2E2E33]">
-            거점 {location} ▾
-          </Text>
-        </Pressable>
-      </View>
-      <View className="h-px bg-[#E0E0E6]" />
+      <HomeHeader
+        location={location}
+        category={category}
+        mode={mode}
+        query={query}
+        searchVisible={searchVisible}
+        modeExpanded={dropdown?.kind === 'mode'}
+        onRegionPress={(anchor) => openDropdown('location', anchor)}
+        onModePress={(anchor) => openDropdown('mode', anchor)}
+        onSearchPress={() => setSearchVisible(!searchVisible)}
+        onNotificationsPress={() => Alert.alert('알림', '새로운 알림이 없어요.')}
+        onQueryChange={setQuery}
+        onCategoryChange={setCategory}
+      />
       <View className="flex-1">
         <View className="h-11 flex-row items-center justify-end px-4">
           <Pressable
@@ -165,7 +130,7 @@ export default function Home() {
             accessibilityState={{ expanded: dropdown?.kind === 'sort' }}
             onPress={() =>
               sortButton.current?.measureInWindow((x, y, width, height) => {
-                setDropdown({ kind: 'sort', x: x + width - 120, y: y + height + 4, width: 120 });
+                openDropdown('sort', { x: x + width - 120, y, width, height });
               })
             }
             className="min-h-11 justify-center pl-4"
@@ -192,67 +157,14 @@ export default function Home() {
         >
           {visiblePosts.length ? (
             visiblePosts.map((post) => (
-              <View key={post.id} className="mb-5">
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${post.title} 상세 보기`}
-                  onPress={() =>
-                    router.push({ pathname: '/post/[id]', params: { id: String(post.id) } })
-                  }
-                  className="flex-row gap-[14px] pr-6"
-                >
-                  <View
-                    accessibilityLabel={post.photos?.length ? '굿즈 사진' : '굿즈 사진 준비 중'}
-                    className="h-24 w-24 items-center justify-center rounded-lg bg-[#E0E0E6]"
-                  >
-                    {post.photos?.[0] ? (
-                      <Image
-                        source={post.photos[0]}
-                        style={{ width: 96, height: 96, borderRadius: 8 }}
-                        contentFit="cover"
-                      />
-                    ) : (
-                      <Text style={font} className="text-[11px] leading-[15px] text-[#737380]">
-                        사진
-                      </Text>
-                    )}
-                  </View>
-                  <View className="min-w-0 flex-1 pt-0.5">
-                    <Text style={font} className="pr-6 text-[15px] leading-[21px] text-[#2E2E33]">
-                      {post.title}
-                    </Text>
-                    <Text
-                      style={font}
-                      className="mt-[5px] text-[12px] leading-[17px] text-[#737380]"
-                    >
-                      {post.location} · {post.minutes}분 전
-                    </Text>
-                    <Text
-                      style={font}
-                      className="mt-[3px] text-[12px] leading-[17px] text-[#737380]"
-                    >
-                      원해요: {post.wanted}
-                    </Text>
-                    {post.onsite !== false && (
-                      <View className="mt-[7px] h-[22px] w-[116px] items-center justify-center rounded-md bg-[#2E2E33]">
-                        <Text style={font} className="text-[11px] leading-[15px] text-white">
-                          현장 · {post.remaining}분
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="게시글 더 보기"
-                  onPress={() => setMenuId(post.id)}
-                  className="absolute -right-2 -top-3 h-11 w-11 items-center justify-center"
-                >
-                  <Text style={font} className="text-[18px] text-[#737380]">
-                    ⋮
-                  </Text>
-                </Pressable>
-              </View>
+              <ExchangePostCard
+                key={post.id}
+                post={post}
+                onPress={() =>
+                  router.push({ pathname: '/post/[id]', params: { id: String(post.id) } })
+                }
+                onMore={() => setMenuId(post.id)}
+              />
             ))
           ) : (
             <Text style={font} className="py-12 text-center text-[14px] text-[#737380]">
@@ -295,14 +207,8 @@ export default function Home() {
           </Pressable>
         </View>
       )}
-      <Modal
-        visible={dropdown !== null}
-        transparent
-        statusBarTranslucent
-        animationType="none"
-        onRequestClose={() => setDropdown(null)}
-      >
-        <View className="flex-1">
+      {dropdown && (
+        <View className="absolute inset-0" style={{ zIndex: 50, elevation: 50 }}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="선택 메뉴 닫기"
@@ -320,8 +226,19 @@ export default function Home() {
               }}
               className="overflow-hidden rounded-xl border border-[#E0E0E6] bg-white shadow-lg"
             >
-              {(dropdown.kind === 'location' ? locations : ['최신순', '가까운순']).map((item) => {
-                const selected = item === (dropdown.kind === 'location' ? location : sort);
+              {(dropdown.kind === 'location'
+                ? locations
+                : dropdown.kind === 'mode'
+                  ? ['모든 교환글', '지금 교환', '일반 교환']
+                  : ['최신순', '가까운순']
+              ).map((item) => {
+                const selected =
+                  item ===
+                  (dropdown.kind === 'location'
+                    ? location
+                    : dropdown.kind === 'mode'
+                      ? mode
+                      : sort);
                 return (
                   <Pressable
                     key={item}
@@ -329,13 +246,14 @@ export default function Home() {
                     accessibilityState={{ selected }}
                     onPress={() => {
                       if (dropdown.kind === 'location') setLocation(item);
+                      else if (dropdown.kind === 'mode') setMode(item);
                       else setSort(item);
                       setDropdown(null);
                     }}
                     className={`min-h-11 flex-row items-center justify-between px-3 ${selected ? 'bg-gray-50' : 'bg-white'}`}
                   >
                     <Text style={font} className="text-[13px] leading-[18px] text-[#2E2E33]">
-                      {item}
+                      {dropdown.kind === 'location' && item === '전체' ? '모든 지역' : item}
                     </Text>
                     {selected && (
                       <Text style={font} className="text-[13px] text-[#2E2E33]">
@@ -348,7 +266,7 @@ export default function Home() {
             </View>
           )}
         </View>
-      </Modal>
+      )}
       <Modal
         visible={menuId !== null || editingId !== null}
         transparent
