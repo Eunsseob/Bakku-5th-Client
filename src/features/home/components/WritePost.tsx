@@ -1,7 +1,8 @@
 import { router, Stack } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useExchangeStore } from '../store/useExchangeStore';
+import { useWriteTagsStore } from '../store/useWriteTagsStore';
 import ExchangeGoods from './ExchangeGoods';
 import ExchangePlace from './ExchangePlace';
 import ExchangeTiming from './ExchangeTiming';
@@ -11,6 +12,8 @@ import type { MapPoint } from './MapCanvas';
 export default function WritePost() {
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const addPost = useExchangeStore((state) => state.addPost);
+  const tags = useWriteTagsStore((state) => state.tags);
+  useEffect(() => () => useWriteTagsStore.getState().setTags([]), []);
   const [photos, setPhotos] = useState<string[]>([]);
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
@@ -41,7 +44,7 @@ export default function WritePost() {
       category,
       wanted: anyItem ? '상관없음' : wanted.trim(),
       photos,
-      tags: [],
+      tags,
       condition: conditions,
       quantity: anyItem ? '' : quantity,
       location,
@@ -76,6 +79,8 @@ export default function WritePost() {
       <>
         <Stack.Screen options={{ headerShown: false }} />
         <ExchangeGoods
+          tags={tags}
+          onTagsPress={() => router.push('/write-tags')}
           photos={photos}
           onPhotosChange={setPhotos}
           title={title}

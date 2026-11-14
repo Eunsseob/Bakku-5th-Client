@@ -6,6 +6,7 @@ import { TextField } from '@/shared/components/TextField';
 import { Thumbnail } from '@/shared/components/Thumbnail';
 import { TopNavigation } from '@/shared/components/TopNavigation';
 import { CameraIcon } from 'phosphor-react-native/src/icons/Camera';
+import { CaretRightIcon } from 'phosphor-react-native/src/icons/CaretRight';
 import { XIcon } from 'phosphor-react-native/src/icons/X';
 import { useState } from 'react';
 import {
@@ -22,6 +23,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PhotoSelection from './PhotoSelection';
 
 type ExchangeGoodsProps = {
+  tags: string[];
+  onTagsPress: () => void;
   photos: string[];
   onPhotosChange: (photos: string[]) => void;
   title: string;
@@ -206,6 +209,27 @@ export default function ExchangeGoods(props: ExchangeGoodsProps) {
               </Chip>
             ))}
           </View>
+        </View>
+        <View className="mt-8 gap-3">
+          <Text className="font-sans text-[14px] leading-5 tracking-[-0.14px] text-[#030712]">
+            태그 (선택)
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`태그 추가, ${props.tags.length}/5개`}
+            onPress={props.onTagsPress}
+            className="h-[50px] flex-row items-center gap-2 rounded-lg border border-[#D1D5DC] px-3.5"
+          >
+            <Text
+              numberOfLines={1}
+              className={`flex-1 font-sans text-[16px] leading-[26px] ${props.tags.length ? 'text-[#030712]' : 'text-[#99A1AF]'}`}
+            >
+              {props.tags.length
+                ? props.tags.map((tag) => `#${tag}`).join(' ')
+                : '#제품명, #캐릭터명, #작품명'}
+            </Text>
+            <Icon icon={CaretRightIcon} size="xl" color="#364153" />
+          </Pressable>
         </View>
         <View className="mt-8">
           <TextField
