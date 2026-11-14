@@ -29,10 +29,5 @@ export default function Login() {
     if (USE_MOCK_AUTH) router.push('/(auth)/terms');
     else Alert.alert(`${provider} 로그인`, '로그인 연동을 준비 중이에요.');
   };
-  return (
-    <LoginLayout
-      onKakao={handleKakaoLogin}
-      onGoogle={() => handleOtherLogin('Google')}
-    />
-  );
+  return <LoginLayout onKakao={handleKakaoLogin} onGoogle={() => handleOtherLogin('Google')} />;
 }

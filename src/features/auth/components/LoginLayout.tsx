@@ -9,7 +9,7 @@ type LoginLayoutProps = {
 };
 
 // 11. 12 애플 삭제
-export default function LoginLayout({ onKakao, onGoogle}: LoginLayoutProps) {
+export default function LoginLayout({ onKakao, onGoogle }: LoginLayoutProps) {
   const insets = useSafeAreaInsets();
   const providers = [
     { label: '카카오로 시작하기', onPress: onKakao },

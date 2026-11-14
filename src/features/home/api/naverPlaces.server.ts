@@ -54,19 +54,35 @@ export async function findNaverPlaces(query: string) {
     const signal = AbortSignal.timeout(10_000);
     const fetchPlaces = async (searchQuery: string) => {
       const params = new URLSearchParams({ query: searchQuery, display: '5', sort: 'random' });
-      const response = await fetch(`https://naverapihub.apigw.ntruss.com/search/v1/local?${params}`, {
-        headers: { 'X-NCP-APIGW-API-KEY-ID': clientId, 'X-NCP-APIGW-API-KEY': clientSecret },
-        signal,
-      });
+      const response = await fetch(
+        `https://naverapihub.apigw.ntruss.com/search/v1/local?${params}`,
+        {
+          headers: { 'X-NCP-APIGW-API-KEY-ID': clientId, 'X-NCP-APIGW-API-KEY': clientSecret },
+          signal,
+        },
+      );
       if (response.status === 401 || response.status === 403)
-        throw new Error('네이버 검색 API 인증에 실패했어요. API HUB의 지역 검색 권한과 서버 인증키를 확인해 주세요.');
-      if (!response.ok) throw new Error('네이버 장소 검색을 사용할 수 없어요. 잠시 후 다시 시도해 주세요.');
+        throw new Error(
+          '네이버 검색 API 인증에 실패했어요. API HUB의 지역 검색 권한과 서버 인증키를 확인해 주세요.',
+        );
+      if (!response.ok)
+        throw new Error('네이버 장소 검색을 사용할 수 없어요. 잠시 후 다시 시도해 주세요.');
       const body = await response.json();
       return normalizeNaverPlaces(body.items ?? []);
     };
     const places = await fetchPlaces(query);
     const uniquePlaces = new Map(places.map((place) => [place.id, place]));
-    const suffixes = ['출구', '지하철역', '버스정류장', '공공기관', '공원', '카페', '편의점', '음식점', '시설'];
+    const suffixes = [
+      '출구',
+      '지하철역',
+      '버스정류장',
+      '공공기관',
+      '공원',
+      '카페',
+      '편의점',
+      '음식점',
+      '시설',
+    ];
     const expandedQueries = [...new Set(suffixes.map((suffix) => `${query} ${suffix}`))];
     // Limit concurrency and stop expanding once enough distinct places have been collected.
     for (let index = 0; index < expandedQueries.length && uniquePlaces.size < 15; index += 3) {
@@ -91,15 +107,16 @@ export async function findNaverPlaces(query: string) {
       return 4;
     };
     return Response.json({
-      places: [...uniquePlaces.values()]
-        .sort((a, b) => relevance(a) - relevance(b))
-        .slice(0, 30),
+      places: [...uniquePlaces.values()].sort((a, b) => relevance(a) - relevance(b)).slice(0, 30),
     });
   } catch (error) {
     return Response.json(
-      { message: error instanceof Error && error.name === 'Error'
-        ? error.message
-        : '검색 응답이 지연되고 있어요. 다시 시도해 주세요.' },
+      {
+        message:
+          error instanceof Error && error.name === 'Error'
+            ? error.message
+            : '검색 응답이 지연되고 있어요. 다시 시도해 주세요.',
+      },
       { status: 502 },
     );
   }
