@@ -1,7 +1,6 @@
-import { Button } from '@/shared/components/Button';
 import { Chip } from '@/shared/components/Chip';
 import { Icon } from '@/shared/components/Icon';
-import { TopNavigation } from '@/shared/components/TopNavigation';
+import { XIcon } from 'phosphor-react-native/src/icons/X';
 import * as Location from 'expo-location';
 import { MagnifyingGlassIcon } from 'phosphor-react-native/src/icons/MagnifyingGlass';
 import { useEffect, useRef, useState } from 'react';
@@ -58,6 +57,7 @@ export default function LocationSelection({
   const [locationError, setLocationError] = useState('');
   const [currentLocation, setCurrentLocation] = useState<MapPoint>();
   const [moving, setMoving] = useState(false);
+  const [showMapHint, setShowMapHint] = useState(true);
   const [address, setAddress] = useState({
     primary: initialLocation,
     secondary: initialDetail,
@@ -210,8 +210,43 @@ export default function LocationSelection({
       className="flex-1 bg-white"
       style={{ paddingLeft: insets.left, paddingRight: insets.right }}
     >
-      <TopNavigation type="screen" title="교환 장소 설정" onBack={onClose} />
-      <View className="px-4 pb-3 pt-2">
+      <View style={{ height: Math.max(34, insets.top), backgroundColor: '#FFFFFF' }} />
+      <View
+        style={{
+          height: 44,
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          backgroundColor: '#FFFFFF',
+        }}
+      >
+        <Text
+          className="font-sans"
+          style={{
+            position: 'absolute',
+            left: 52,
+            right: 52,
+            textAlign: 'center',
+            fontSize: 16,
+            lineHeight: 22,
+            fontWeight: '600',
+            color: '#030712',
+            includeFontPadding: false,
+          }}
+        >
+          교환 장소 설정
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="교환 장소 설정 닫기"
+          onPress={onClose}
+          hitSlop={10}
+          style={{ width: 24, height: 24 }}
+        >
+          <Icon icon={XIcon} size="xl" weight="bold" color="#030712" />
+        </Pressable>
+      </View>
+      <View style={{ height: 110, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12 }}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="장소, 지하철, 주소 검색 열기"
@@ -229,6 +264,7 @@ export default function LocationSelection({
         </Pressable>
         <ScrollView
           horizontal
+          style={{ height: 50, flexGrow: 0 }}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: 8, paddingTop: 12 }}
           keyboardShouldPersistTaps="handled"
@@ -269,47 +305,128 @@ export default function LocationSelection({
             centerSelection
             onSelect={selectPoint}
             onCameraMove={() => {
+              setShowMapHint(false);
               userSelected.current = true;
               setMoving(true);
             }}
           />
         )}
-        <View pointerEvents="none" className="absolute left-0 right-0 top-8 items-center px-4">
-          <View className="rounded-lg bg-[#364153] px-3 py-[7px]">
-            <Text className="font-sans text-[14px] leading-5 text-white">
-              {locating ? '현재 위치를 찾고 있어요' : '지도를 움직여서 선택해보세요'}
+        {showMapHint && !locating && (
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              top: '50%',
+              marginTop: -90,
+              alignItems: 'center',
+              paddingHorizontal: 16,
+            }}
+          >
+            <View
+              style={{
+                borderRadius: 8,
+                backgroundColor: '#364153',
+                paddingHorizontal: 12,
+                paddingVertical: 7,
+              }}
+            >
+              <Text
+                className="font-sans"
+                style={{
+                  fontSize: 14,
+                  lineHeight: 20,
+                  letterSpacing: -0.14,
+                  color: '#FFFFFF',
+                  textAlign: 'center',
+                  includeFontPadding: false,
+                }}
+              >
+                지도를 움직여서 선택해보세요
+              </Text>
+            </View>
+          </View>
+        )}
+        {!!locationError && (
+          <View
+            style={{
+              position: 'absolute',
+              left: 16,
+              right: 16,
+              bottom: 32,
+              padding: 8,
+              borderRadius: 8,
+              backgroundColor: '#FFFFFF',
+            }}
+          >
+            <Text
+              className="font-sans"
+              style={{ fontSize: 12, lineHeight: 18, textAlign: 'center', color: '#6A7282' }}
+            >
+              {locationError}
             </Text>
           </View>
+        )}
+      </View>
+      <View
+        style={{
+          marginTop: -24,
+          flexShrink: 0,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          overflow: 'hidden',
+          zIndex: 1,
+          paddingHorizontal: 16,
+          paddingTop: 16,
+          backgroundColor: '#FFFFFF',
+        }}
+      >
+        <View style={{ height: 44, flexShrink: 0, gap: 2, justifyContent: 'center' }}>
+          <Text
+            numberOfLines={1}
+            className="text-center font-sans text-[16px] leading-[22px] text-[#364153]"
+            style={{ letterSpacing: -0.16, includeFontPadding: false }}
+          >
+            {moving || addressPending ? '선택한 위치를 확인하고 있어요…' : address.primary}
+          </Text>
+          <Text
+            numberOfLines={1}
+            className="text-center font-sans text-[14px] leading-5 text-[#6A7282]"
+            style={{ letterSpacing: -0.14, includeFontPadding: false }}
+          >
+            {moving || addressPending ? '지도를 멈추면 주소가 표시돼요' : address.secondary}
+          </Text>
         </View>
-      </View>
-      {!!locationError && (
-        <Text className="px-4 pt-2 text-center font-sans text-[12px] leading-[18px] text-[#6A7282]">
-          {locationError}
-        </Text>
-      )}
-      <View className="gap-1 px-4 pb-2 pt-4">
-        <Text
-          numberOfLines={2}
-          className="text-center font-sans text-[16px] leading-[22px] text-[#364153]"
-        >
-          {moving || addressPending ? '선택한 위치를 확인하고 있어요…' : address.primary}
-        </Text>
-        <Text
-          numberOfLines={2}
-          className="text-center font-sans text-[14px] leading-5 text-[#6A7282]"
-        >
-          {moving || addressPending ? '지도를 멈추면 주소가 표시돼요' : address.secondary}
-        </Text>
-      </View>
-      <View className="px-4 pt-3" style={{ paddingBottom: 8 + insets.bottom }}>
-        <Button
-          hierarchy="primary"
-          disabled={!canConfirm}
-          onPress={() => onConfirm(address.primary, address.secondary, point)}
-          className={`!h-[52px] self-stretch !rounded-xl ${canConfirm ? '!bg-[#364153]' : ''}`}
-        >
-          선택 완료
-        </Button>
+        <View style={{ flexShrink: 0, paddingTop: 12, paddingBottom: 8 + insets.bottom }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !canConfirm }}
+            disabled={!canConfirm}
+            onPress={() => onConfirm(address.primary, address.secondary, point)}
+            style={{
+              height: 52,
+              flexShrink: 0,
+              borderRadius: 12,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: canConfirm ? '#364153' : '#D1D5DC',
+            }}
+          >
+            <Text
+              className="font-sans"
+              style={{
+                fontSize: 16,
+                lineHeight: 22,
+                letterSpacing: -0.16,
+                color: canConfirm ? '#FFFFFF' : '#99A1AF',
+                includeFontPadding: false,
+              }}
+            >
+              선택 완료
+            </Text>
+          </Pressable>
+        </View>
       </View>
       <Modal
         visible={searchOpen}

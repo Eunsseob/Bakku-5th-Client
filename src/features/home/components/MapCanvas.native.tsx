@@ -118,6 +118,7 @@ export default function MapCanvas({
             : undefined
         }
         initialCamera={initialCamera}
+        isShowZoomControls={false}
         onCameraChanged={(camera) => {
           cameraCenter.current = { latitude: camera.latitude, longitude: camera.longitude };
           if (centerSelection && camera.reason === 'Gesture') onCameraMove?.();
@@ -139,7 +140,7 @@ export default function MapCanvas({
         onTapMap={onSelect}
         onTapSymbol={(symbol) => onSelect?.(symbol)}
       >
-        {!centerSelection && (
+        {!centerSelection && !preview && (
           <NaverMapMarkerOverlay
             latitude={point.latitude}
             longitude={point.longitude}
@@ -183,7 +184,23 @@ export default function MapCanvas({
           accessibilityState={{ busy: locating, disabled: locating }}
           disabled={locating}
           onPress={moveToMyLocation}
-          className="absolute bottom-6 right-4 h-[52px] w-[52px] items-center justify-center rounded-full border border-[#E0E0E6] bg-white shadow-md"
+          style={{
+            position: 'absolute',
+            right: 16,
+            // The selection panel overlaps the map by 24px.
+            bottom: centerSelection ? 40 : 16,
+            width: 52,
+            height: 52,
+            borderRadius: 26,
+            backgroundColor: '#FFFFFF',
+            alignItems: 'center',
+            justifyContent: 'center',
+            shadowColor: '#000000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.12,
+            shadowRadius: 4,
+            elevation: 3,
+          }}
         >
           {locating ? (
             <ActivityIndicator color="#2E2E33" />
@@ -193,15 +210,17 @@ export default function MapCanvas({
               height={24}
               viewBox="0 0 24 24"
               fill="none"
-              stroke="#2E2E33"
-              strokeWidth={1.8}
+              stroke="#364153"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              <Circle cx={12} cy={12} r={7} />
-              <Circle cx={12} cy={12} r={2.5} fill="#2E2E33" stroke="none" />
-              <Line x1={12} y1={1} x2={12} y2={5} />
-              <Line x1={12} y1={19} x2={12} y2={23} />
-              <Line x1={1} y1={12} x2={5} y2={12} />
-              <Line x1={19} y1={12} x2={23} y2={12} />
+              <Circle cx={12} cy={12} r={9} />
+              <Line x1={12} y1={3} x2={12} y2={6} />
+              <Line x1={12} y1={18} x2={12} y2={21} />
+              <Line x1={3} y1={12} x2={6} y2={12} />
+              <Line x1={18} y1={12} x2={21} y2={12} />
+              <Circle cx={12} cy={12} r={1} fill="#364153" stroke="none" />
             </Svg>
           )}
         </Pressable>

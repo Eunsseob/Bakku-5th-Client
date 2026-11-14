@@ -1,10 +1,8 @@
-import { searchPlaces, type PlaceResult } from '../api/placeSearch';
 import { Icon } from '@/shared/components/Icon';
-import { IconButton } from '@/shared/components/IconButton';
-import { Divider } from '@/shared/components/Divider';
+import { searchPlaces, type PlaceResult } from '../api/placeSearch';
 import { CaretLeftIcon } from 'phosphor-react-native/src/icons/CaretLeft';
 import { MapPinIcon } from 'phosphor-react-native/src/icons/MapPin';
-import { XIcon } from 'phosphor-react-native/src/icons/X';
+import { XCircleIcon } from 'phosphor-react-native/src/icons/XCircle';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -25,6 +23,39 @@ type Props = {
   onBack: () => void;
   onSelect: (place: Place) => void;
 };
+
+function MatchedPlaceName({ name, query }: { name: string; query: string }) {
+  const term = query.trim();
+  const parts = [];
+  let start = 0;
+  while (term && start < name.length) {
+    const index = name.toLowerCase().indexOf(term.toLowerCase(), start);
+    if (index < 0) break;
+    parts.push(name.slice(start, index));
+    parts.push(
+      <Text key={index} className="font-sans" style={{ fontWeight: '700', color: '#364153' }}>
+        {name.slice(index, index + term.length)}
+      </Text>,
+    );
+    start = index + term.length;
+  }
+  parts.push(name.slice(start));
+  return (
+    <Text
+      numberOfLines={1}
+      className="font-sans"
+      style={{
+        fontSize: 15,
+        lineHeight: 24,
+        fontWeight: '400',
+        color: '#99A1AF',
+        includeFontPadding: false,
+      }}
+    >
+      {parts}
+    </Text>
+  );
+}
 
 function distance(origin: MapPoint, destination: MapPoint) {
   const radians = (degrees: number) => (degrees * Math.PI) / 180;
@@ -92,27 +123,59 @@ export default function LocationSearch({ initialQuery, origin, onBack, onSelect 
     <View
       className="flex-1 bg-white"
       style={{
-        paddingTop: insets.top,
         paddingBottom: insets.bottom,
         paddingLeft: insets.left,
         paddingRight: insets.right,
       }}
     >
-      <View className="flex-row items-center gap-1 pb-3 pl-1 pr-4 pt-2">
-        <View className="h-11 w-11 items-center justify-center">
-          <IconButton
-            icon={CaretLeftIcon}
-            accessibilityLabel="지도 화면으로 돌아가기"
-            onPress={onBack}
-          />
-        </View>
-        <View className="h-10 flex-1 flex-row items-center gap-2 rounded-lg bg-[#F3F4F6] px-3">
+      <View style={{ height: Math.max(34, insets.top), backgroundColor: '#FFFFFF' }} />
+      <View
+        style={{
+          height: 48,
+          paddingHorizontal: 16,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 12,
+        }}
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="지도 화면으로 돌아가기"
+          onPress={onBack}
+          hitSlop={10}
+          style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Icon icon={CaretLeftIcon} size="xl" color="#364153" weight="bold" />
+        </Pressable>
+        <View
+          style={{
+            height: 40,
+            flex: 1,
+            minWidth: 0,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            borderRadius: 8,
+            backgroundColor: '#F3F4F6',
+            paddingHorizontal: 12,
+          }}
+        >
           <TextInput
             autoFocus
             accessibilityLabel="장소 검색"
             placeholder="장소, 지하철, 주소 검색"
             placeholderTextColor="#99A1AF"
-            className="flex-1 p-0 font-sans text-[16px] leading-[26px] text-[#364153]"
+            className="font-sans"
+            style={{
+              flex: 1,
+              minWidth: 0,
+              padding: 0,
+              height: 26,
+              fontSize: 16,
+              lineHeight: 26,
+              color: '#364153',
+              includeFontPadding: false,
+            }}
             value={query}
             returnKeyType="search"
             onSubmitEditing={() => {
@@ -127,9 +190,16 @@ export default function LocationSearch({ initialQuery, origin, onBack, onSelect 
             }}
           />
           {!!query && (
-            <IconButton
-              icon={XIcon}
-              size="sm"
+            <Pressable
+              accessibilityRole="button"
+              hitSlop={8}
+              style={{
+                width: 20,
+                height: 20,
+                flexShrink: 0,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
               accessibilityLabel="검색어 지우기"
               onPress={() => {
                 request.current++;
@@ -138,19 +208,29 @@ export default function LocationSearch({ initialQuery, origin, onBack, onSelect 
                 setMessage('');
                 setLoading(false);
               }}
-            />
+            >
+              <Icon icon={XCircleIcon} size="lg" color="#99A1AF" weight="fill" />
+            </Pressable>
           )}
         </View>
       </View>
-      {loading && <ActivityIndicator className="py-4" color="#364153" />}
+      <View style={{ height: 8, backgroundColor: '#FFFFFF' }} />
       <FlatList
+        style={{ flex: 1 }}
         data={results}
         keyExtractor={(item) => item.id}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 24 }}
-        ItemSeparatorComponent={() => <Divider />}
+        contentContainerStyle={{ paddingBottom: 24 }}
+        ItemSeparatorComponent={() => (
+          <View style={{ height: 1, marginHorizontal: 16, backgroundColor: '#E5E7EB' }} />
+        )}
+        ListFooterComponent={
+          results.length > 0 ? (
+            <View style={{ height: 1, marginHorizontal: 16, backgroundColor: '#E5E7EB' }} />
+          ) : undefined
+        }
         renderItem={({ item }) => (
           <Pressable
             accessibilityRole="button"
@@ -159,39 +239,58 @@ export default function LocationSearch({ initialQuery, origin, onBack, onSelect 
               Keyboard.dismiss();
               onSelect(item);
             }}
-            className="min-h-[89px] flex-row items-center gap-4 py-4"
+            style={{
+              height: 88,
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 16,
+            }}
           >
-            <View className="w-6 items-center justify-center">
-              <Icon icon={MapPinIcon} size="xl" weight="regular" color="#99A1AF" />
+            <View style={{ width: 24, height: 24, alignItems: 'center', justifyContent: 'center' }}>
+              <Icon icon={MapPinIcon} size="xl" weight="bold" color="#99A1AF" />
             </View>
-            <View className="flex-1 gap-0.5">
+            <View style={{ flex: 1, minWidth: 0, height: 64 }}>
+              <MatchedPlaceName name={item.name} query={query} />
               <Text
-                style={{ includeFontPadding: false }}
-                numberOfLines={2}
-                className="font-sans text-[15px] font-normal leading-6 text-[#364153]"
-              >
-                {item.name}
-              </Text>
-              <Text
-                style={{ includeFontPadding: false }}
-                numberOfLines={2}
-                className="font-sans text-[13px] leading-5 text-[#99A1AF]"
+                style={{
+                  fontSize: 13,
+                  lineHeight: 20,
+                  color: '#99A1AF',
+                  includeFontPadding: false,
+                }}
+                numberOfLines={1}
+                className="font-sans"
               >
                 {item.address}
               </Text>
-              <Text className="font-sans text-[13px] leading-5 text-[#99A1AF]">
+              <Text
+                numberOfLines={1}
+                className="font-sans"
+                style={{
+                  fontSize: 13,
+                  lineHeight: 20,
+                  color: '#99A1AF',
+                  includeFontPadding: false,
+                }}
+              >
                 {distance(origin, item)}km · {item.category}
               </Text>
             </View>
           </Pressable>
         )}
         ListEmptyComponent={
-          <Text className="px-4 py-8 text-center font-sans text-[14px] text-[#99A1AF]">
-            {message ||
-              (normalized
-                ? '검색 버튼을 눌러 주소를 찾아보세요.'
-                : '장소명이나 주소를 입력해 주세요.')}
-          </Text>
+          loading ? (
+            <ActivityIndicator style={{ paddingVertical: 32 }} color="#364153" />
+          ) : (
+            <Text className="px-4 py-8 text-center font-sans text-[14px] text-[#99A1AF]">
+              {message ||
+                (normalized
+                  ? '검색 버튼을 눌러 주소를 찾아보세요.'
+                  : '장소명이나 주소를 입력해 주세요.')}
+            </Text>
+          )
         }
       />
     </View>
