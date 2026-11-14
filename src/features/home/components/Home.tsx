@@ -1,4 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
+import { Icon } from '@/shared/components/Icon';
+import { PlusIcon } from 'phosphor-react-native/src/icons/Plus';
 import HomeHeader, { type MenuAnchor } from './HomeHeader';
 import ExchangePostCard from './ExchangePostCard';
 import { useExchangeStore } from '../store/useExchangeStore';
@@ -176,10 +178,34 @@ export default function Home() {
           accessibilityRole="button"
           accessibilityLabel="교환 글쓰기"
           onPress={() => router.push('/write')}
-          className="absolute bottom-7 right-4 h-12 w-[120px] items-center justify-center rounded-full bg-[#2E2E33] active:opacity-80"
+          style={{
+            position: 'absolute',
+            right: 20,
+            bottom: 24,
+            width: 94,
+            height: 48,
+            borderRadius: 24,
+            backgroundColor: '#364153',
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: 16,
+            paddingVertical: 13,
+            gap: 4,
+          }}
         >
-          <Text style={font} className="text-[15px] leading-[21px] text-white">
-            + 글쓰기
+          <Icon icon={PlusIcon} size="md" color="#FFFFFF" />
+          <Text
+            numberOfLines={1}
+            style={{
+              ...font,
+              fontSize: 16,
+              lineHeight: 22,
+              letterSpacing: -0.16,
+              color: '#FFFFFF',
+            }}
+          >
+            글쓰기
           </Text>
         </Pressable>
       </View>
