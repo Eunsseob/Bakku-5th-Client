@@ -36,6 +36,13 @@ export default function WritePost() {
     (anyItem || (!!wanted.trim() && !!quantity)) &&
     !!location &&
     (!onsite || (Number.isInteger(minutes) && minutes > 0 && minutes <= 1440));
+  const quit = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(main)/home');
+    }
+  };
   const submit = () => {
     if (!valid) return;
     const id = addPost({
@@ -68,7 +75,8 @@ export default function WritePost() {
           onDurationSelect={(value) => setDuration(`${value}분`)}
           onsite={onsite}
           onSelect={setOnsite}
-          onBack={() => (step === 2 ? setStep(1) : router.back())}
+          onQuit={quit}
+          onBack={() => (step === 2 ? setStep(1) : quit())}
           onNext={() => setStep(step === 1 ? 2 : 3)}
         />
       </>
@@ -91,6 +99,7 @@ export default function WritePost() {
           onConditionChange={(value) => setConditions([value])}
           description={description}
           onDescriptionChange={setDescription}
+          onQuit={quit}
           onBack={() => setStep(2)}
           onNext={() => setStep(4)}
         />
@@ -108,6 +117,7 @@ export default function WritePost() {
           onAnyItemChange={setAnyItem}
           quantity={quantity}
           onQuantityChange={setQuantity}
+          onQuit={quit}
           onBack={() => setStep(3)}
           onNext={() => setStep(5)}
         />
@@ -128,6 +138,7 @@ export default function WritePost() {
         }}
         onDetailChange={setLocationDetail}
         valid={valid}
+        onQuit={quit}
         onBack={() => setStep(4)}
         onSubmit={submit}
       />

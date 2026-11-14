@@ -14,6 +14,7 @@ type ExchangeWantedProps = {
   quantity: string;
   onQuantityChange: (value: string) => void;
   onBack: () => void;
+  onQuit: () => void;
   onNext: () => void;
 };
 
@@ -31,7 +32,13 @@ export default function ExchangeWanted(props: ExchangeWantedProps) {
       className="flex-1 bg-white"
       style={{ paddingLeft: insets.left, paddingRight: insets.right }}
     >
-      <TopNavigation type="screen" title="교환글 작성" onBack={props.onBack} />
+      <TopNavigation
+        type="screen"
+        title="교환글 작성"
+        onBack={props.onBack}
+        trailingLabel="그만두기"
+        onTrailingPress={props.onQuit}
+      />
       <ScrollView
         className="flex-1"
         keyboardShouldPersistTaps="handled"

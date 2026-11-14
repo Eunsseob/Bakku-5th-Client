@@ -14,7 +14,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import LocationSelection from './LocationSelection';
 import type { MapPoint } from './MapCanvas';
@@ -27,6 +27,7 @@ type ExchangePlaceProps = {
   onDetailChange: (detail: string) => void;
   valid: boolean;
   onBack: () => void;
+  onQuit: () => void;
   onSubmit: () => void;
 };
 
@@ -40,7 +41,13 @@ export default function ExchangePlace(props: ExchangePlaceProps) {
       className="flex-1 bg-white"
       style={{ paddingLeft: insets.left, paddingRight: insets.right }}
     >
-      <TopNavigation type="screen" title="교환글 작성" onBack={props.onBack} />
+      <TopNavigation
+        type="screen"
+        title="교환글 작성"
+        onBack={props.onBack}
+        trailingLabel="그만두기"
+        onTrailingPress={props.onQuit}
+      />
       <ScrollView
         className="flex-1"
         keyboardShouldPersistTaps="handled"
@@ -124,16 +131,18 @@ export default function ExchangePlace(props: ExchangePlaceProps) {
         onRequestClose={() => setLocationOpen(false)}
       >
         {locationOpen && (
-          <LocationSelection
-            initialLocation={props.location}
-            initialDetail={props.detail}
-            initialPoint={props.point}
-            onClose={() => setLocationOpen(false)}
-            onConfirm={(location, _address, point) => {
-              props.onLocationChange(location, props.detail, point);
-              setLocationOpen(false);
-            }}
-          />
+          <SafeAreaProvider>
+            <LocationSelection
+              initialLocation={props.location}
+              initialDetail={props.detail}
+              initialPoint={props.point}
+              onClose={() => setLocationOpen(false)}
+              onConfirm={(location, _address, point) => {
+                props.onLocationChange(location, props.detail, point);
+                setLocationOpen(false);
+              }}
+            />
+          </SafeAreaProvider>
         )}
       </Modal>
     </KeyboardAvoidingView>

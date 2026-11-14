@@ -10,6 +10,7 @@ type ExchangeTimingProps = {
   onsite: boolean;
   onSelect: (onsite: boolean) => void;
   onBack: () => void;
+  onQuit: () => void;
   onNext: () => void;
   minutes: number;
   onDurationSelect: (minutes: number) => void;
@@ -20,6 +21,7 @@ export default function ExchangeTiming({
   onsite,
   onSelect,
   onBack,
+  onQuit,
   onNext,
   minutes,
   onDurationSelect,
@@ -56,7 +58,13 @@ export default function ExchangeTiming({
       className="flex-1 bg-white"
       style={{ paddingLeft: insets.left, paddingRight: insets.right }}
     >
-      <TopNavigation type="screen" title="교환글 작성" onBack={onBack} />
+      <TopNavigation
+        type="screen"
+        title="교환글 작성"
+        onBack={onBack}
+        trailingLabel="그만두기"
+        onTrailingPress={onQuit}
+      />
       <ScrollView contentContainerClassName="px-4 pb-8" className="flex-1">
         <View
           accessibilityRole="progressbar"

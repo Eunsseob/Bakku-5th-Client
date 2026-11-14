@@ -1,11 +1,9 @@
 import { Button } from '@/shared/components/Button';
 import { Chip } from '@/shared/components/Chip';
 import { Icon } from '@/shared/components/Icon';
-import { IconButton } from '@/shared/components/IconButton';
 import { TextField } from '@/shared/components/TextField';
 import { Thumbnail } from '@/shared/components/Thumbnail';
 import { TopNavigation } from '@/shared/components/TopNavigation';
-import { CameraIcon } from 'phosphor-react-native/src/icons/Camera';
 import { CaretRightIcon } from 'phosphor-react-native/src/icons/CaretRight';
 import { XIcon } from 'phosphor-react-native/src/icons/X';
 import { useState } from 'react';
@@ -19,6 +17,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import PhotoSelection from './PhotoSelection';
 
@@ -36,6 +35,7 @@ type ExchangeGoodsProps = {
   description: string;
   onDescriptionChange: (description: string) => void;
   onBack: () => void;
+  onQuit: () => void;
   onNext: () => void;
 };
 
@@ -51,7 +51,13 @@ export default function ExchangeGoods(props: ExchangeGoodsProps) {
       className="flex-1 bg-white"
       style={{ paddingLeft: insets.left, paddingRight: insets.right }}
     >
-      <TopNavigation type="screen" title="교환글 작성" onBack={props.onBack} />
+      <TopNavigation
+        type="screen"
+        title="교환글 작성"
+        onBack={props.onBack}
+        trailingLabel="그만두기"
+        onTrailingPress={props.onQuit}
+      />
       <ScrollView
         className="flex-1"
         keyboardShouldPersistTaps="handled"
@@ -87,19 +93,35 @@ export default function ExchangeGoods(props: ExchangeGoodsProps) {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={{ height: 64, flexGrow: 0 }}
-            contentContainerStyle={{ gap: 8, alignItems: 'center', paddingVertical: 0 }}
+            style={{ height: 74, flexGrow: 0, marginVertical: -5 }}
+            contentContainerStyle={{
+              gap: 8,
+              alignItems: 'center',
+              paddingVertical: 5,
+              paddingRight: 5,
+            }}
           >
             <Pressable
               accessibilityRole="button"
               accessibilityLabel={`사진 선택, ${props.photos.length}/5장`}
               onPress={() => setPhotoPickerOpen(true)}
-              style={{ width: 66, height: 64, flexShrink: 0, padding: 0 }}
-              className="items-center justify-center gap-1 rounded-xl border border-[#D1D5DC]"
+              style={{
+                width: 66,
+                height: 64,
+                flexShrink: 0,
+                padding: 0,
+                borderWidth: 1,
+                borderColor: '#D1D5DC',
+                borderRadius: 12,
+                backgroundColor: '#FFFFFF',
+              }}
             >
               <View
                 pointerEvents="none"
                 style={{
+                  position: 'absolute',
+                  left: 20,
+                  top: 11,
                   width: 24,
                   height: 24,
                   flexShrink: 0,
@@ -107,39 +129,66 @@ export default function ExchangeGoods(props: ExchangeGoodsProps) {
                   justifyContent: 'center',
                 }}
               >
-                <Icon icon={CameraIcon} size="xl" weight="regular" color="#6A7282" />
+                <Svg width={24} height={24} viewBox="0 0 24 24" fill="none">
+                  <Path
+                    d="M14.5 4H9.5a1 1 0 0 0-1 1 2 2 0 0 1-2 2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-1.5a2 2 0 0 1-2-2 1 1 0 0 0-1-1Z"
+                    stroke="#99A1AF"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <Circle cx={12} cy={13} r={3} stroke="#99A1AF" strokeWidth={2} />
+                </Svg>
               </View>
               <Text
                 style={{
+                  position: 'absolute',
+                  left: 24,
+                  top: 36,
                   includeFontPadding: false,
                   fontSize: 10,
                   lineHeight: 14,
                   textAlign: 'center',
-                  minWidth: 16,
+                  width: 16,
+                  height: 14,
+                  letterSpacing: -0.1,
+                  color: '#99A1AF',
                 }}
-                className="font-sans text-[10px] leading-[14px] text-[#99A1AF]"
+                className="font-sans"
               >
                 {props.photos.length}/5
               </Text>
             </Pressable>
             {props.photos.map((uri, index) => (
-              <View key={uri}>
+              <View key={uri} style={{ width: 64, height: 64, flexShrink: 0 }}>
                 <Thumbnail
                   source={uri}
                   size={64}
                   cornerStyle="curved"
+                  className="!rounded-xl !border-[#D1D5DC]"
                   accessibilityLabel={`굿즈 사진 ${index + 1}`}
                 />
-                <View className="absolute right-0 top-0 rounded-full bg-white">
-                  <IconButton
-                    icon={XIcon}
-                    size="sm"
-                    accessibilityLabel={`사진 ${index + 1} 삭제`}
-                    onPress={() =>
-                      props.onPhotosChange(props.photos.filter((photo) => photo !== uri))
-                    }
-                  />
-                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`사진 ${index + 1} 삭제`}
+                  hitSlop={6}
+                  style={{
+                    position: 'absolute',
+                    left: 53,
+                    top: -5,
+                    width: 16,
+                    height: 16,
+                    borderRadius: 8,
+                    backgroundColor: '#364153',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onPress={() =>
+                    props.onPhotosChange(props.photos.filter((photo) => photo !== uri))
+                  }
+                >
+                  <Icon icon={XIcon} size="xs" weight="regular" color="#FFFFFF" />
+                </Pressable>
               </View>
             ))}
           </ScrollView>
