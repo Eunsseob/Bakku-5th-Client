@@ -2,18 +2,14 @@
 import { Alert } from 'react-native';
 
 import LoginLayout from './LoginLayout';
-import { enterMainAfterAuth } from '@/features/auth/utils/enterMainAfterAuth';
 
 export default function Login() {
   const router = useRouter();
-  const goToMain = () => {
-    enterMainAfterAuth();
-  };
   const handleKakaoLogin = async () => {
     try {
       const { login } = await import('@react-native-seoul/kakao-login');
       await login();
-      goToMain();
+      router.push('/(auth)/terms');
     } catch (error: unknown) {
       Alert.alert(
         '카카오 로그인 실패',
