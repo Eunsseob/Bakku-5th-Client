@@ -30,7 +30,7 @@ export default function MainLayout() {
       <Tabs.Screen name="exchange-map" />
       <Tabs.Screen name="chat" />
       <Tabs.Screen name="mypage" />
-      // 작성 화면은 이동 가능하게 등록하고, 탭바만 숨김
+      {/*// 작성 화면은 이동 가능하게 등록하고, 탭바만 숨김*/}
       <Tabs.Screen name="(post-create)" />
     </Tabs>
   );
