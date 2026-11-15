@@ -177,7 +177,7 @@ export default function Home() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="교환 글쓰기"
-          onPress={() => router.push('/write')}
+          onPress={() => router.push('/(main)/(post-create)/write')}
           style={{
             position: 'absolute',
             right: 20,

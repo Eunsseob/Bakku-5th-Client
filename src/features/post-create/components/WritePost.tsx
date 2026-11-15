@@ -1,13 +1,13 @@
 import { router, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 
-import { useExchangeStore } from '../store/useExchangeStore';
+import { useExchangeStore } from '@/features/home/store/useExchangeStore';
 import { useWriteTagsStore } from '../store/useWriteTagsStore';
 import ExchangeGoods from './ExchangeGoods';
 import ExchangePlace from './ExchangePlace';
 import ExchangeTiming from './ExchangeTiming';
 import ExchangeWanted from './ExchangeWanted';
-import type { MapPoint } from './MapCanvas';
+import type { MapPoint } from '@/features/home/components/MapCanvas';
 
 export default function WritePost() {
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
@@ -88,7 +88,7 @@ export default function WritePost() {
         <Stack.Screen options={{ headerShown: false }} />
         <ExchangeGoods
           tags={tags}
-          onTagsPress={() => router.push('/write-tags')}
+          onTagsPress={() => router.push('/(main)/(post-create)/write-tags')}
           photos={photos}
           onPhotosChange={setPhotos}
           title={title}

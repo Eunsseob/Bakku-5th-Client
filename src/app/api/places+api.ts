@@ -1,4 +1,4 @@
-import { findNaverPlaces } from '@/features/home/api/naverPlaces.server';
+import { findNaverPlaces } from '@/features/post-create/api/naverPlaces.server';
 
 export async function GET(request: Request) {
   const query = new URL(request.url).searchParams.get('query')?.trim();

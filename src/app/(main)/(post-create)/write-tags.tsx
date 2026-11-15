@@ -1,4 +1,4 @@
-import TagSelection from '@/features/home/components/TagSelection';
+import TagSelection from '@/features/post-create/components/TagSelection';
 
 export default function WriteTagsRoute() {
   return <TagSelection />;

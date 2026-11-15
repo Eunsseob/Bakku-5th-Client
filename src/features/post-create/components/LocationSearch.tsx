@@ -14,7 +14,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { MapPoint } from './MapCanvas';
+import type { MapPoint } from '@/features/home/components/MapCanvas';
 
 type Place = PlaceResult;
 type Props = {

@@ -7,7 +7,7 @@ import * as Location from 'expo-location';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, View } from 'react-native';
 import Svg, { Circle, Line } from 'react-native-svg';
-import { MapPinIcon } from 'phosphor-react-native/src/icons/MapPin';
+import MapLocationPin from './MapLocationPin';
 import type { MapCanvasProps, MapPoint } from './MapCanvas';
 import { getQuickCurrentLocation } from '../utils/currentLocation';
 
@@ -108,7 +108,7 @@ export default function MapCanvas({
     }
   };
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1 }} pointerEvents={preview ? 'none' : 'auto'}>
       <NaverMapView
         ref={map}
         style={{ flex: 1 }}
@@ -137,6 +137,9 @@ export default function MapCanvas({
         }
         isScrollGesturesEnabled={!preview}
         isZoomGesturesEnabled={!preview}
+        isTiltGesturesEnabled={!preview}
+        isRotateGesturesEnabled={!preview}
+        isStopGesturesEnabled={!preview}
         onTapMap={onSelect}
         onTapSymbol={(symbol) => onSelect?.(symbol)}
       >
@@ -144,37 +147,27 @@ export default function MapCanvas({
           <NaverMapMarkerOverlay
             latitude={point.latitude}
             longitude={point.longitude}
-            caption={{ text: '선택한 위치' }}
-          />
+            width={56}
+            height={56}
+            anchor={{ x: 0.5, y: 1 }}
+          >
+            <MapLocationPin />
+          </NaverMapMarkerOverlay>
         )}
       </NaverMapView>
-      {centerSelection && (
+      {(centerSelection || preview) && (
         <View
           pointerEvents="none"
           style={{
             position: 'absolute',
             left: '50%',
             top: '50%',
-            width: 56,
-            height: 56,
-            transform: [{ translateX: -28 }, { translateY: -56 }],
+            width: preview ? 32 : 56,
+            height: preview ? 32 : 56,
+            transform: [{ translateX: preview ? -16 : -28 }, { translateY: preview ? -32 : -56 }],
           }}
         >
-          <View
-            style={{
-              position: 'absolute',
-              left: 18.67,
-              top: 11.67,
-              width: 21,
-              height: 21,
-              borderRadius: 10.5,
-              backgroundColor: '#FFFFFF',
-              zIndex: 0,
-            }}
-          />
-          <View style={{ zIndex: 1 }}>
-            <MapPinIcon size={56} weight="fill" color="#364153" />
-          </View>
+          <MapLocationPin size={preview ? 32 : 56} />
         </View>
       )}
       {!preview && (

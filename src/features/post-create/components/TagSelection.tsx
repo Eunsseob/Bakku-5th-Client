@@ -16,7 +16,7 @@ import { XCircleIcon } from 'phosphor-react-native/src/icons/XCircle';
 import { Button } from '@/shared/components/Button';
 import { Divider } from '@/shared/components/Divider';
 import { TopNavigation } from '@/shared/components/TopNavigation';
-import { useExchangeStore } from '../store/useExchangeStore';
+import { useExchangeStore } from '@/features/home/store/useExchangeStore';
 import { useWriteTagsStore } from '../store/useWriteTagsStore';
 
 const suggestedTags = ['치이카와', '하치와레', '우사기', '포토카드', '피규어', '키링'];

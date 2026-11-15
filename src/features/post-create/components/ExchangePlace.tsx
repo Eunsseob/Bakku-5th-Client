@@ -17,7 +17,7 @@ import {
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import LocationSelection from './LocationSelection';
-import type { MapPoint } from './MapCanvas';
+import type { MapPoint } from '@/features/home/components/MapCanvas';
 
 type ExchangePlaceProps = {
   location: string;

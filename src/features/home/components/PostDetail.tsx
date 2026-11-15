@@ -407,33 +407,7 @@ export default function PostDetail() {
             }}
           >
             {post.locationPoint ? (
-              <>
-                <MapCanvas point={post.locationPoint} preview />
-                <View
-                  pointerEvents="none"
-                  style={{
-                    position: 'absolute',
-                    left: '50%',
-                    top: '50%',
-                    width: 32,
-                    height: 32,
-                    transform: [{ translateX: -16 }, { translateY: -32 }],
-                  }}
-                >
-                  <View
-                    style={{
-                      position: 'absolute',
-                      left: 10.67,
-                      top: 6.67,
-                      width: 12,
-                      height: 12,
-                      borderRadius: 6,
-                      backgroundColor: '#FFFFFF',
-                    }}
-                  />
-                  <Icon icon={MapPinIcon} size="3xl" weight="fill" color="#364153" />
-                </View>
-              </>
+              <MapCanvas point={post.locationPoint} preview />
             ) : (
               <View className="flex-1 items-center justify-center">
                 <Text className="font-sans text-[13px] text-[#99A1AF]">
@@ -547,7 +521,8 @@ export default function PostDetail() {
           backgroundColor: '#FFFFFF',
           paddingHorizontal: 16,
           paddingTop: 12,
-          paddingBottom: Math.max(30, insets.bottom),
+          paddingBottom: 8 + insets.bottom,
+          flexShrink: 0,
         }}
       >
         <Pressable

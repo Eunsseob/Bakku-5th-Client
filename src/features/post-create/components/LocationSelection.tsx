@@ -17,9 +17,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { getQuickCurrentLocation } from '../utils/currentLocation';
+import { getQuickCurrentLocation } from '@/features/home/utils/currentLocation';
 import { searchPlaces } from '../api/placeSearch';
-import MapCanvas, { type MapPoint } from './MapCanvas';
+import MapCanvas, { type MapPoint } from '@/features/home/components/MapCanvas';
 import LocationSearch from './LocationSearch';
 
 const hubs = [
