@@ -8,23 +8,26 @@ export default function MainLayout() {
   return (
     <Tabs
       screenOptions={{ headerShown: false, animation: 'none' }}
-      tabBar={({ state }) => (
-        <View
-          style={{
-            paddingBottom: insets.bottom,
-            paddingLeft: insets.left,
-            paddingRight: insets.right,
-            backgroundColor: 'white',
-          }}
-        >
-          <MainTabBar active={state.routes[state.index].name as MainTab} />
-        </View>
-      )}
+      tabBar={({ state }) =>
+        state.routes[state.index].name === '(post-create)' ? null : (
+          <View
+            style={{
+              paddingBottom: insets.bottom,
+              paddingLeft: insets.left,
+              paddingRight: insets.right,
+              backgroundColor: 'white',
+            }}
+          >
+            <MainTabBar active={state.routes[state.index].name as MainTab} />
+          </View>
+        )
+      }
     >
       <Tabs.Screen name="home" />
       <Tabs.Screen name="exchange-map" />
       <Tabs.Screen name="chat" />
       <Tabs.Screen name="mypage" />
+      <Tabs.Screen name="(post-create)" options={{ href: null }} />
     </Tabs>
   );
 }
