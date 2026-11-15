@@ -9,7 +9,7 @@ import {
   Pressable,
   ScrollView,
   Text,
-  View
+  View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
