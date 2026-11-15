@@ -21,6 +21,7 @@ export type ExchangePost = {
   author?: { nickname: string; mannerScore: number; completedExchanges: number };
   requestCount?: number;
   viewCount?: number;
+  isMine?: boolean;
 };
 
 export const useExchangeStore = create<{
@@ -28,7 +29,7 @@ export const useExchangeStore = create<{
   publishedPostId: number | null;
   dismissPublishedToast: () => void;
   setPosts: (posts: ExchangePost[]) => void;
-  addPost: (post: Omit<ExchangePost, 'id'>) => void;
+  addPost: (post: Omit<ExchangePost, 'id'>) => number;
 }>((set) => ({
   posts: initialPosts,
   publishedPostId: null,
@@ -37,6 +38,7 @@ export const useExchangeStore = create<{
   addPost: (post) => {
     const id = Date.now();
     set((state) => ({ posts: [{ ...post, id }, ...state.posts], publishedPostId: id }));
+    return id;
   },
 }));
 

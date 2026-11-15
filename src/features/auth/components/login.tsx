@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+﻿import { useRouter } from 'expo-router';
 import { Alert } from 'react-native';
 
 import { USE_MOCK_AUTH } from '@/constants/auth';
@@ -29,11 +29,5 @@ export default function Login() {
     if (USE_MOCK_AUTH) router.push('/(auth)/terms');
     else Alert.alert(`${provider} 로그인`, '로그인 연동을 준비 중이에요.');
   };
-  return (
-    <LoginLayout
-      onKakao={handleKakaoLogin}
-      onGoogle={() => handleOtherLogin('Google')}
-      onApple={() => handleOtherLogin('Apple')}
-    />
-  );
+  return <LoginLayout onKakao={handleKakaoLogin} onGoogle={() => handleOtherLogin('Google')} />;
 }

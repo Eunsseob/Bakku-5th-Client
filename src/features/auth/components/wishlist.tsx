@@ -1,4 +1,5 @@
-import { Button, Chip } from '@/shared/components';
+import { CaretLeftIcon } from 'phosphor-react-native/src/icons/CaretLeft';
+import { Button, Chip, IconButton } from '@/shared/components';
 import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -52,16 +53,13 @@ export default function Wishlist() {
         <Text style={font} className="text-center text-[12px] leading-[17px] text-[#737380]">
           2 / 2
         </Text>
-        <Pressable
-          accessibilityRole="button"
+        <IconButton
+          icon={CaretLeftIcon}
+          size="xl"
           accessibilityLabel="이전 단계"
           onPress={() => router.back()}
           className="absolute bottom-[9px] left-[21px] h-11 w-11 items-center justify-center"
-        >
-          <Text style={font} className="text-[26px] text-[#2E2E33]">
-            ‹
-          </Text>
-        </Pressable>
+        />
         <Pressable
           accessibilityRole="button"
           onPress={() => finish(false)}

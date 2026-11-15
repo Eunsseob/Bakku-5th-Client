@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Alert, FlatList, Platform, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -19,14 +19,16 @@ export default function PhotoSelection({
   const [photos, setPhotos] = useState(initialPhotos);
   const [selected, setSelected] = useState(initialPhotos);
   const [busy, setBusy] = useState(false);
+  const pickerBusy = useRef(false);
   const [width, setWidth] = useState(360);
   const size = (width - 52) / 3;
   const addPhotos = async (camera: boolean) => {
-    if (busy) return;
+    if (pickerBusy.current) return;
     if (selected.length >= 5) {
       Alert.alert('사진 선택', '사진은 최대 5장까지 선택할 수 있어요.');
       return;
     }
+    pickerBusy.current = true;
     setBusy(true);
     try {
       if (camera) {
@@ -37,13 +39,20 @@ export default function PhotoSelection({
         }
       }
       const result = camera
-        ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8 })
+        ? await ImagePicker.launchCameraAsync({
+            mediaTypes: ['images'],
+            quality: 1,
+            allowsEditing: false,
+          })
         : await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ['images'],
             allowsMultipleSelection: true,
             orderedSelection: true,
             selectionLimit: 5 - selected.length,
-            quality: 0.8,
+            quality: 1,
+            allowsEditing: false,
+            preferredAssetRepresentationMode:
+              ImagePicker.UIImagePickerPreferredAssetRepresentationMode.Current,
           });
       if (!result.canceled) {
         const incoming = result.assets.map((asset) => asset.uri);
@@ -53,6 +62,7 @@ export default function PhotoSelection({
     } catch {
       Alert.alert('사진 선택', '사진을 불러오지 못했어요. 다시 시도해 주세요.');
     } finally {
+      pickerBusy.current = false;
       setBusy(false);
     }
   };
