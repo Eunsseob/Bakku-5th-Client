@@ -44,15 +44,15 @@ export default function Profile({ onBack }: ProfileProps) {
       }}
     >
       <Stack.Screen options={{ headerShown: false }} />
-      <View className="justify-end pb-5" style={{ height: Math.max(64, 97 - insets.top) }}>
-        <Text style={font} className="text-center text-[16px] leading-[22px] text-[#2E2E33]">
-          프로필 설정
-        </Text>
+      <View
+        className="items-center justify-center"
+        style={{ height: Math.max(34, 78 - insets.top) }}
+      >
         <Text
           style={font}
-          className="absolute bottom-[22px] right-[33px] text-[12px] leading-[17px] text-[#737380]"
+          className="text-center text-[16px] leading-[22px] tracking-[-0.16px] text-[#030712]"
         >
-          1 / 2
+          프로필 설정
         </Text>
         <IconButton
           icon={CaretLeftIcon}
@@ -63,27 +63,28 @@ export default function Profile({ onBack }: ProfileProps) {
             if (onBack) onBack();
             else router.back();
           }}
-          className="absolute bottom-[9px] left-[21px] h-11 w-11 items-center justify-center"
+          className="absolute left-4 h-11 w-6 items-center justify-center self-center"
         />
       </View>
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 21, paddingTop: 30, paddingBottom: 24 }}
+        style={{ minHeight: 0 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 40, paddingBottom: 24 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View className="w-full max-w-[312px] self-center">
-          <Text style={font} className="text-[20px] leading-[28px] text-[#2E2E33]">
-            어떻게 불러드릴까요?
+        <View className="w-full">
+          <Text style={font} className="text-[24px] leading-8 tracking-[-0.48px] text-[#364153]">
+            {'바꾸에서 사용할\n프로필을 등록해주세요'}
           </Text>
-          <View className="mt-8">
-            <Text style={font} className="text-[13px] leading-[18px] text-[#2E2E33]">
+          <View className="mt-4">
+            <Text style={font} className="text-[14px] leading-5 tracking-[-0.14px] text-[#030712]">
               닉네임
             </Text>
             <TextInput
               accessibilityLabel="닉네임"
-              placeholder="닉네임 (2~10자)"
-              placeholderTextColor="#737380"
+              placeholder="사용하실 닉네임을 입력하세요"
+              placeholderTextColor="#99A1AF"
               value={profile.nickname}
               maxLength={10}
               onChangeText={(nickname) => setProfile({ ...profile, nickname })}
@@ -91,25 +92,27 @@ export default function Profile({ onBack }: ProfileProps) {
               autoCapitalize="none"
               autoCorrect={false}
               returnKeyType="done"
-              style={{ ...font, lineHeight: 20, paddingVertical: 0 }}
-              className="mt-[6px] h-12 rounded-[8px] border-2 border-[#BFBFC7] px-3 text-[14px] text-[#2E2E33]"
+              style={{ ...font, lineHeight: 26, paddingVertical: 0 }}
+              className="mt-3 h-[52px] rounded-lg border border-[#D1D5DC] px-3.5 text-[16px] text-[#364153]"
             />
-            <Text
-              accessibilityLiveRegion="polite"
-              style={font}
-              className={`mt-[6px] text-[11px] leading-[15px] ${touched.nickname && nicknameError ? 'text-red-600' : 'text-[#737380]'}`}
-            >
-              {touched.nickname && nicknameError ? nicknameError : '다른 사용자에게 보여요'}
-            </Text>
+            {touched.nickname && nicknameError && (
+              <Text
+                accessibilityLiveRegion="polite"
+                style={font}
+                className={`mt-[6px] text-[11px] leading-[15px] ${touched.nickname && nicknameError ? 'text-red-600' : 'text-[#737380]'}`}
+              >
+                {nicknameError}
+              </Text>
+            )}
           </View>
-          <View className="mt-[27px]">
-            <Text style={font} className="text-[13px] leading-[18px] text-[#2E2E33]">
+          <View className="mt-8">
+            <Text style={font} className="text-[14px] leading-5 tracking-[-0.14px] text-[#030712]">
               생년월일
             </Text>
             <TextInput
               accessibilityLabel="생년월일"
-              placeholder="YYYY . MM . DD"
-              placeholderTextColor="#737380"
+              placeholder="YYYY. MM. DD"
+              placeholderTextColor="#99A1AF"
               value={profile.birthDate}
               maxLength={14}
               keyboardType="number-pad"
@@ -118,25 +121,25 @@ export default function Profile({ onBack }: ProfileProps) {
               }
               onBlur={() => setTouched((value) => ({ ...value, birthDate: true }))}
               returnKeyType="done"
-              style={{ ...font, lineHeight: 20, paddingVertical: 0 }}
-              className="mt-[6px] h-12 rounded-[8px] border-2 border-[#BFBFC7] px-3 text-[14px] text-[#2E2E33]"
+              style={{ ...font, lineHeight: 26, paddingVertical: 0 }}
+              className="mt-3 h-[52px] rounded-lg border border-[#D1D5DC] px-3.5 text-[16px] text-[#364153]"
             />
-            <Text
-              accessibilityLiveRegion="polite"
-              style={font}
-              className={`mt-[6px] text-[11px] leading-[15px] ${(touched.birthDate || profile.birthDate.replace(/\D/g, '').length === 8) && birthDateError ? 'text-red-600' : 'text-[#737380]'}`}
-            >
-              {(touched.birthDate || profile.birthDate.replace(/\D/g, '').length === 8) &&
-              birthDateError
-                ? birthDateError
-                : '만 14세 이상만 가입할 수 있어요 · 공개되지 않아요'}
-            </Text>
+            {(touched.birthDate || profile.birthDate.replace(/\D/g, '').length === 8) &&
+              birthDateError && (
+                <Text
+                  accessibilityLiveRegion="polite"
+                  style={font}
+                  className={`mt-[6px] text-[11px] leading-[15px] ${(touched.birthDate || profile.birthDate.replace(/\D/g, '').length === 8) && birthDateError ? 'text-red-600' : 'text-[#737380]'}`}
+                >
+                  {birthDateError}
+                </Text>
+              )}
           </View>
-          <View className="mt-[27px]">
-            <Text style={font} className="text-[13px] leading-[18px] text-[#2E2E33]">
+          <View className="mt-8">
+            <Text style={font} className="text-[14px] leading-5 tracking-[-0.14px] text-[#030712]">
               성별
             </Text>
-            <View className="mt-2 flex-row gap-2">
+            <View className="mt-3 flex-row gap-2">
               {GENDER_OPTIONS.map((option) => {
                 const selected = profile.gender === option.value;
                 return (
@@ -147,9 +150,11 @@ export default function Profile({ onBack }: ProfileProps) {
                     size="md"
                     className="justify-center"
                     style={{
-                      width: option.value === null ? 112 : 56,
-                      height: 34,
-                      paddingHorizontal: 0,
+                      width: option.value === null ? undefined : 53,
+                      height: 38,
+                      paddingHorizontal: option.value === null ? 14 : 0,
+                      borderColor: selected ? '#364153' : '#D1D5DC',
+                      backgroundColor: selected ? '#364153' : '#FFFFFF',
                     }}
                     accessibilityRole="radio"
                     accessibilityState={{ checked: selected }}
@@ -163,13 +168,10 @@ export default function Profile({ onBack }: ProfileProps) {
                 );
               })}
             </View>
-            <Text style={font} className="mt-[10px] text-[11px] leading-[15px] text-[#737380]">
-              공개되지 않아요
-            </Text>
           </View>
         </View>
       </ScrollView>
-      <View className="px-[21px] pt-3" style={{ paddingBottom: Math.max(16, 35 - insets.bottom) }}>
+      <View className="shrink-0 px-4 pb-2">
         <Button
           hierarchy="primary"
           accessibilityRole="button"
@@ -181,7 +183,7 @@ export default function Profile({ onBack }: ProfileProps) {
             setProfile({ ...profile, nickname: profile.nickname.trim() });
             router.push('/(auth)/wishlist');
           }}
-          className="w-full max-w-[312px] self-center"
+          className={`w-full self-center !rounded-xl ${canContinue ? '!bg-[#364153]' : '!bg-[#D1D5DC]'}`}
         >
           다음
         </Button>
