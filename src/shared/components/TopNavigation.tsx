@@ -11,8 +11,10 @@ import { Icon, type IconComponent } from './Icon';
 import { IconButton } from './IconButton';
 import { LabelButton } from './LabelButton';
 import { IconBadgeAnchor, NotificationBadge } from './NotificationBadge';
+import { SearchField, type SearchFieldProps } from './SearchField';
 
 // BDS Top Navigation: 화면 상단에 고정되는 바 (상태바 영역 + 56px 바 + 선택적 칩 탭)
+// type: home(큰 제목) / screen(가운데 제목 + 뒤로) / searchField(뒤로 + 검색 필드)
 
 export type TopNavigationAction = {
   icon: IconComponent;
@@ -65,7 +67,16 @@ type ScreenProps = CommonProps & {
   actions?: TopNavigationAction[];
 };
 
-type TopNavigationProps = HomeProps | ScreenProps;
+type SearchProps = CommonProps & {
+  /** 왼쪽 뒤로 가기 + 검색 필드 (예: 장소 검색) */
+  type: 'searchField';
+  onBack?: () => void;
+  backType?: 'back' | 'close';
+  /** 검색 필드에 그대로 넘긴다. 돋보기 아이콘은 기본으로 숨긴다 */
+  search: SearchFieldProps;
+};
+
+type TopNavigationProps = HomeProps | ScreenProps | SearchProps;
 
 function ActionButton({ icon, accessibilityLabel, onPress, badge }: TopNavigationAction) {
   return (
@@ -135,6 +146,37 @@ function HomeBar({ title, onTitlePress, actions = [] }: HomeProps) {
   );
 }
 
+function BackButton({
+  onBack,
+  backType = 'back',
+}: {
+  onBack: () => void;
+  backType?: 'back' | 'close';
+}) {
+  return (
+    <View className="p-2.5">
+      {backType === 'close' ? (
+        <IconButton icon={XIcon} accessibilityLabel="닫기" onPress={onBack} />
+      ) : (
+        <IconButton icon={CaretLeftIcon} accessibilityLabel="뒤로 가기" onPress={onBack} />
+      )}
+    </View>
+  );
+}
+
+function SearchBar({ onBack, backType, search }: SearchProps) {
+  return (
+    <View className={`h-14 flex-row items-center py-1.5 pr-4 ${onBack ? 'pl-1.5' : 'pl-4'}`}>
+      {onBack ? <BackButton onBack={onBack} backType={backType} /> : null}
+      <SearchField
+        leadingIconVisible={false}
+        {...search}
+        className={`flex-1 ${search.className ?? ''}`}
+      />
+    </View>
+  );
+}
+
 function ScreenBar({
   title,
   description,
@@ -168,17 +210,7 @@ function ScreenBar({
           ) : null}
         </View>
       ) : null}
-      {onBack ? (
-        <View className="p-2.5">
-          {backType === 'close' ? (
-            <IconButton icon={XIcon} accessibilityLabel="닫기" onPress={onBack} />
-          ) : (
-            <IconButton icon={CaretLeftIcon} accessibilityLabel="뒤로 가기" onPress={onBack} />
-          )}
-        </View>
-      ) : (
-        <View />
-      )}
+      {onBack ? <BackButton onBack={onBack} backType={backType} /> : <View />}
       {trailingLabel ? (
         <View className="px-2.5 py-3">
           <LabelButton hierarchy="tertiary" size="md" onPress={onTrailingPress}>
@@ -203,6 +235,8 @@ export function TopNavigation(props: TopNavigationProps) {
   let bar: ReactNode;
   if (props.type === 'home') {
     bar = <HomeBar {...props} />;
+  } else if (props.type === 'searchField') {
+    bar = <SearchBar {...props} />;
   } else {
     bar = <ScreenBar {...props} />;
   }

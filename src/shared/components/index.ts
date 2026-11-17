@@ -19,13 +19,14 @@ export {
 } from './Button';
 export {
   Checkbox,
+  CheckboxMark,
   type CheckboxHierarchy,
   type CheckboxSize,
   type CheckboxStatus,
 } from './Checkbox';
 export { Chip, type ChipHierarchy, type ChipSize, type ChipVariant } from './Chip';
 export { Divider, type DividerLayout, type DividerThickness, type DividerVariant } from './Divider';
-export { Fab } from './Fab';
+export { Fab, type FabSize } from './Fab';
 export { ICON_SIZE, Icon, type IconComponent, type IconSize } from './Icon';
 export { IconButton, type IconButtonHierarchy, type IconButtonSize } from './IconButton';
 export { InteractionLayer, PRESSED_OPACITY } from './InteractionLayer';
@@ -40,7 +41,7 @@ export {
   NotificationBadge,
   type NotificationBadgeSize,
 } from './NotificationBadge';
-export { Radio, type RadioHierarchy, type RadioSize } from './Radio';
+export { Radio, RadioMark, type RadioHierarchy, type RadioSize } from './Radio';
 export { Tag, type TagHierarchy, type TagSize, type TagVariant } from './Tag';
 export { TextField, type TextFieldTrailing } from './TextField';
 export {
@@ -51,3 +52,18 @@ export {
   type ThumbnailVariant,
 } from './Thumbnail';
 export { TopNavigation, type TopNavigationAction, type TopNavigationTab } from './TopNavigation';
+export {
+  ListItem,
+  type ListItemFeedback,
+  type ListItemLeading,
+  type ListItemTrailing,
+} from './ListItem';
+export { Menu, type MenuItem } from './Menu';
+export { PLACE_PIN_ANCHOR, PlacePin } from './PlacePin';
+export { SearchField, type SearchFieldProps } from './SearchField';
+export {
+  formatDistance,
+  SearchListResult,
+  type SearchListResultLeading,
+  type SearchListResultTrailing,
+} from './SearchListResult';

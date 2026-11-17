@@ -7,25 +7,20 @@ import { ChoiceLabel } from './ChoiceLabel';
 export type RadioHierarchy = 'primary' | 'accent';
 export type RadioSize = 'lg' | 'md';
 
-type RadioProps = Omit<PressableProps, 'children' | 'style'> & {
+type RadioMarkProps = {
   checked: boolean;
-  label?: string;
-  helperText?: string;
+  disabled?: boolean;
   hierarchy?: RadioHierarchy;
   size?: RadioSize;
-  className?: string;
 };
 
-export function Radio({
+/** 동그라미만 그린다. List Item 처럼 줄 전체가 눌리는 곳에서 쓴다 */
+export function RadioMark({
   checked,
-  label,
-  helperText,
+  disabled = false,
   hierarchy = 'primary',
   size = 'lg',
-  disabled,
-  className,
-  ...pressableProps
-}: RadioProps) {
+}: RadioMarkProps) {
   const dimension = size === 'lg' ? 20 : 18;
 
   let ring: { borderWidth: number; borderColor: string; backgroundColor?: string };
@@ -46,6 +41,28 @@ export function Radio({
     };
   }
 
+  return <View className="rounded-full" style={{ width: dimension, height: dimension, ...ring }} />;
+}
+
+type RadioProps = Omit<PressableProps, 'children' | 'style'> & {
+  checked: boolean;
+  label?: string;
+  helperText?: string;
+  hierarchy?: RadioHierarchy;
+  size?: RadioSize;
+  className?: string;
+};
+
+export function Radio({
+  checked,
+  label,
+  helperText,
+  hierarchy = 'primary',
+  size = 'lg',
+  disabled,
+  className,
+  ...pressableProps
+}: RadioProps) {
   return (
     <Pressable
       accessibilityRole="radio"
@@ -55,7 +72,7 @@ export function Radio({
       {...pressableProps}
     >
       <View className="py-px">
-        <View className="rounded-full" style={{ width: dimension, height: dimension, ...ring }} />
+        <RadioMark checked={checked} disabled={!!disabled} hierarchy={hierarchy} size={size} />
       </View>
       {label ? (
         <ChoiceLabel label={label} helperText={helperText} size={size} muted={!!disabled} />
