@@ -1,6 +1,4 @@
-import { Chip } from '@/shared/components/Chip';
-import { TextField } from '@/shared/components/TextField';
-import { TopNavigation } from '@/shared/components/TopNavigation';
+import { Chip, TextField, TopNavigation } from '@/shared/components';
 import { BellIcon } from 'phosphor-react-native/src/icons/Bell';
 import { MagnifyingGlassIcon } from 'phosphor-react-native/src/icons/MagnifyingGlass';
 import { useRef, type ComponentRef } from 'react';

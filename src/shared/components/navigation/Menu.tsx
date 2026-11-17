@@ -1,8 +1,8 @@
 import { semantic } from '@/design-tokens';
 import { Pressable, Text, View } from 'react-native';
 
-import { Icon, type IconComponent } from './Icon';
-import { InteractionLayer } from './InteractionLayer';
+import { Icon, type IconComponent } from '../display/Icon';
+import { InteractionLayer } from '../decoration/InteractionLayer';
 
 // BDS Menu: ⋮ 같은 버튼을 누르면 뜨는 작은 메뉴 카드 (흰 바탕, 1px 테두리, r12, 위아래 8)
 // 위치는 쓰는 쪽에서 잡는다 (예: 버튼 아래 absolute).

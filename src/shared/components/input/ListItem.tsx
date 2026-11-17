@@ -4,8 +4,8 @@ import { XIcon } from 'phosphor-react-native/src/icons/X';
 import { Pressable, type PressableProps, Text, View } from 'react-native';
 
 import { CheckboxMark, type CheckboxStatus } from './Checkbox';
-import { Icon, type IconComponent } from './Icon';
-import { InteractionLayer } from './InteractionLayer';
+import { Icon, type IconComponent } from '../display/Icon';
+import { InteractionLayer } from '../decoration/InteractionLayer';
 import { RadioMark } from './Radio';
 
 // BDS List Item: 48px 한 줄. [왼쪽(아이콘/라디오/체크박스) + 레이블] ... [오른쪽 아이콘]

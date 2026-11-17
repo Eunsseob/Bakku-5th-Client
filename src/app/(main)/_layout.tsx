@@ -1,4 +1,4 @@
-import MainTabBar, { type MainTab } from '@/shared/components/MainTabBar';
+import MainTabBar, { type MainTab } from '@/shared/components/navigation/MainTabBar';
 import { Tabs } from 'expo-router';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

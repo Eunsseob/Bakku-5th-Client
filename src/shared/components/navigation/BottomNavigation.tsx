@@ -2,7 +2,7 @@ import { semantic } from '@/design-tokens';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Icon, type IconComponent } from './Icon';
+import { Icon, type IconComponent } from '../display/Icon';
 import { IconBadgeAnchor, NotificationBadge } from './NotificationBadge';
 
 // BDS Bottom Navigation: 화면 하단 탭 바 (56px 탭 + 홈 인디케이터 영역)

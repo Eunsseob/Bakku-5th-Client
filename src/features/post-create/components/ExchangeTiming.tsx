@@ -1,7 +1,4 @@
-import { Button } from '@/shared/components/Button';
-import { Chip } from '@/shared/components/Chip';
-import { Radio } from '@/shared/components/Radio';
-import { TopNavigation } from '@/shared/components/TopNavigation';
+import { Button, Chip, Radio, TopNavigation } from '@/shared/components';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 

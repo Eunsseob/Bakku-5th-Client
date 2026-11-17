@@ -1,5 +1,4 @@
-import { Button } from '@/shared/components/Button';
-import { Icon } from '@/shared/components/Icon';
+import { Button, Icon } from '@/shared/components';
 import { CheckIcon } from 'phosphor-react-native/src/icons/Check';
 import { Stack } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';

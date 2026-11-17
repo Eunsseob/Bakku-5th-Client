@@ -1,8 +1,8 @@
 import { semantic } from '@/design-tokens';
 import { Text, View } from 'react-native';
 
-import { Button } from './Button';
-import { Icon, type IconComponent } from './Icon';
+import { Button } from '../action/Button';
+import { Icon, type IconComponent } from '../display/Icon';
 
 // BDS Empty State: 보여줄 내용이 없을 때 안내하는 영역
 type EmptyStateProps = {

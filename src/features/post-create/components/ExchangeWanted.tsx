@@ -1,8 +1,4 @@
-import { Button } from '@/shared/components/Button';
-import { Checkbox } from '@/shared/components/Checkbox';
-import { Chip } from '@/shared/components/Chip';
-import { TextField } from '@/shared/components/TextField';
-import { TopNavigation } from '@/shared/components/TopNavigation';
+import { Button, Checkbox, Chip, TextField, TopNavigation } from '@/shared/components';
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 

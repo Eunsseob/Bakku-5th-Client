@@ -2,7 +2,7 @@ import { semantic } from '@/design-tokens';
 import { CaretDownIcon } from 'phosphor-react-native/src/icons/CaretDown';
 import { Pressable, type PressableProps, Text } from 'react-native';
 
-import { Icon, type IconSize } from './Icon';
+import { Icon, type IconSize } from '../display/Icon';
 
 // BDS Chip: 적용한 필터·정렬 조건을 보여주는 칩
 export type ChipHierarchy = 'accent' | 'primary' | 'secondary';

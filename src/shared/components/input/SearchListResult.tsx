@@ -5,9 +5,9 @@ import { MagnifyingGlassIcon } from 'phosphor-react-native/src/icons/MagnifyingG
 import { MapPinIcon } from 'phosphor-react-native/src/icons/MapPin';
 import { Pressable, type PressableProps, Text, View } from 'react-native';
 
-import { Icon, type IconComponent } from './Icon';
-import { InteractionLayer } from './InteractionLayer';
-import { TextDivider } from './TextDivider';
+import { Icon, type IconComponent } from '../display/Icon';
+import { InteractionLayer } from '../decoration/InteractionLayer';
+import { TextDivider } from '../layout/TextDivider';
 
 // BDS 검색 결과 리스트 (Figma: Search List Result)
 // 한 줄 78px: [핀/돋보기 아이콘] 장소명 / 주소 / 거리 · 장소 유형 ... [화살표]

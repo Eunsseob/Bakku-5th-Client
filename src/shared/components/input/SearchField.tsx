@@ -3,8 +3,8 @@ import { MagnifyingGlassIcon } from 'phosphor-react-native/src/icons/MagnifyingG
 import { XCircleIcon } from 'phosphor-react-native/src/icons/XCircle';
 import { Pressable, TextInput, type TextInputProps, View } from 'react-native';
 
-import { Icon } from './Icon';
-import { InteractionLayer } from './InteractionLayer';
+import { Icon } from '../display/Icon';
+import { InteractionLayer } from '../decoration/InteractionLayer';
 
 // BDS Search Field: 회색 바탕(40px, r8) 검색 입력창. 값이 있으면 오른쪽에 지우기 버튼
 export type SearchFieldProps = Omit<TextInputProps, 'editable' | 'style'> & {

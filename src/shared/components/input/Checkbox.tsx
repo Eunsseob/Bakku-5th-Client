@@ -4,7 +4,7 @@ import { MinusIcon } from 'phosphor-react-native/src/icons/Minus';
 import { Pressable, type PressableProps, View } from 'react-native';
 
 import { ChoiceLabel } from './ChoiceLabel';
-import { Icon } from './Icon';
+import { Icon } from '../display/Icon';
 
 // BDS CheckBox
 export type CheckboxStatus = 'unchecked' | 'checked' | 'indeterminate';

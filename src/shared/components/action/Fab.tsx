@@ -2,8 +2,8 @@ import { semantic, shadow } from '@/design-tokens';
 import { PlusIcon } from 'phosphor-react-native/src/icons/Plus';
 import { Pressable, type PressableProps } from 'react-native';
 
-import { Icon, type IconComponent } from './Icon';
-import { InteractionLayer } from './InteractionLayer';
+import { Icon, type IconComponent } from '../display/Icon';
+import { InteractionLayer } from '../decoration/InteractionLayer';
 
 // BDS FAB: 떠 있는 둥근 버튼
 //   lg (56): 보라 바탕 + 흰 아이콘. 홈에서 교환글 작성

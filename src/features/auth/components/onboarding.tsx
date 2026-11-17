@@ -1,4 +1,4 @@
-import { Button } from '@/shared/components/Button';
+import { Button } from '@/shared/components';
 import { router, Stack } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
