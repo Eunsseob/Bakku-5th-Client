@@ -31,13 +31,13 @@ export const MOCK_WISHLIST = [
 export const ONBOARDING_DATA = [
   {
     id: '1',
-    title: '뽑은 굿즈, 그 자리에서 바로 교환',
-    description: '원하지 않는 아이템을 올리고\n근처에서 원하는 사람과 만나 교환해요',
+    title: '뽑기 운이 없어도 괜찮아요',
+    description: '가챠, 랜덤박스, 팝업 굿즈에서\n나온 굿즈를 원하는 굿즈로 바꿔보세요',
   },
   {
     id: '2',
     title: '내가 가진 건, 누군가 찾던 것',
-    description: '가진 굿즈와 찾는 굿즈를 등록하면\n서로 딱 맞는 사람을 찾아드려요',
+    description: '내가 가진 굿즈와 원하는 굿즈를 등록하고\n딱 맞는 상대를 찾아요',
   },
   {
     id: '3',
