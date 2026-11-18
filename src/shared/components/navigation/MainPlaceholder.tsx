@@ -18,10 +18,8 @@ export default function MainPlaceholder({ active, title }: { active: MainTab; ti
     >
       <Stack.Screen options={{ headerShown: false }} />
       <View className="flex-1 items-center justify-center">
-        <Text style={{ fontFamily: 'Pretendard' }} className="text-[20px] text-[#2E2E33]">
-          {title}
-        </Text>
-        <Text style={{ fontFamily: 'Pretendard' }} className="mt-3 text-[14px] text-[#737380]">
+        <Text className="font-sans text-title-2 font-normal text-object-bold">{title}</Text>
+        <Text className="mt-3 font-sans text-label-md font-normal text-gray-500">
           준비 중이에요
         </Text>
       </View>

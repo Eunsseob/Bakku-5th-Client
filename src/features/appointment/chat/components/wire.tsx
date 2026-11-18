@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { primitive } from '@/design-tokens';
 import { Icon } from '@/shared/components';
 
 /*
@@ -14,15 +15,18 @@ import { Icon } from '@/shared/components';
  * 하이파이(BDS) 디자인이 나오면 이 파일의 컴포넌트를 BDS 공통 컴포넌트로 바꾸면 된다.
  */
 
-/** 아이콘 등 className 을 못 쓰는 곳에서 쓰는 같은 색 (design-tokens.js primitive.gray 값) */
+// primitive.gray 는 JS 에서 단계를 펼쳐 만들어 숫자 키 타입이 빠져 있다
+const GRAY = primitive.gray as unknown as Record<number, string>;
+
+/** 아이콘 등 className 을 못 쓰는 곳에서 쓰는 같은 색 (design-tokens.js primitive 값) */
 export const WIRE = {
-  strong: '#1a1b27', // gray-900
-  normal: '#464855', // gray-700
-  neutral: '#555866', // gray-600
-  alternative: '#727583', // gray-500
-  assistive: '#9ea2b1', // gray-300
-  line: '#ced2dc', // gray-150
-  white: '#ffffff',
+  strong: GRAY[900],
+  normal: GRAY[700],
+  neutral: GRAY[600],
+  alternative: GRAY[500],
+  assistive: GRAY[300],
+  line: GRAY[150],
+  white: primitive.base[0],
 };
 
 /** 태그: 회색 바탕 + 테두리 (예약중은 진한 바탕) */
@@ -193,7 +197,7 @@ export function WireDialog({
               {title}
             </Text>
             {description ? (
-              <Text className="font-sans text-label-lg font-normal text-gray-600">
+              <Text className="font-sans text-body-lg font-normal text-gray-600">
                 {description}
               </Text>
             ) : null}

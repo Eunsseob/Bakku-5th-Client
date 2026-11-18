@@ -11,17 +11,20 @@ export default function MainLayout() {
     <Tabs
       backBehavior="history"
       screenOptions={{ headerShown: false, animation: 'none' }}
-      tabBar={({ state }) =>
+      tabBar={({ state, navigateToTab }) =>
         state.routes[state.index].name === '(post-create)' ? null : (
+          // 아래 여백(홈 인디케이터)은 BottomNavigation 이 넣는다
           <View
-            style={{
-              paddingBottom: insets.bottom,
-              paddingLeft: insets.left,
-              paddingRight: insets.right,
-              backgroundColor: 'white',
-            }}
+            className="bg-surface-standard"
+            style={{ paddingLeft: insets.left, paddingRight: insets.right }}
           >
-            <MainTabBar active={state.routes[state.index].name as MainTab} />
+            <MainTabBar
+              active={state.routes[state.index].name as MainTab}
+              onSelect={(tab) => {
+                const route = state.routes.find((candidate) => candidate.name === tab);
+                if (route) navigateToTab(route.key);
+              }}
+            />
           </View>
         )
       }

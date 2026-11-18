@@ -3,6 +3,7 @@ import { CaretRightIcon } from 'phosphor-react-native/src/icons/CaretRight';
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { CompletionCard } from '@/features/completion/review';
 import { Icon } from '@/shared/components';
 
 import type { ChatMessage, ExchangeItem } from '../types';
@@ -11,8 +12,8 @@ import { ProposalCard } from './AppointmentCards';
 import { ItemConditionBadge } from './StatusBadges';
 import { WIRE } from './wire';
 
-/** 15px 본문 (와이어프레임 말풍선 · 카드 제목) */
-const TEXT_15 = 'text-[15px] leading-[18px] tracking-[-0.1px]';
+/** 말풍선 글자: body/md 크기에 와이어프레임 행간 18 (BDS 에 15/18 스타일이 없다) */
+const BUBBLE_TEXT = 'text-body-md leading-[18px]';
 
 export function DateDivider({ date }: { date: string }) {
   return (
@@ -54,7 +55,7 @@ function RequestItemCard({ item, onPress }: { item: ExchangeItem; onPress?: () =
         <View className="h-[136px] bg-gray-75" />
       )}
       <View className="flex-row items-center gap-2.5 px-2.5 py-3">
-        <Text numberOfLines={1} className={`flex-1 font-sans font-medium text-black ${TEXT_15}`}>
+        <Text numberOfLines={1} className="flex-1 font-sans text-body-md font-medium text-black">
           {item.name}
         </Text>
         <ItemConditionBadge condition={item.condition} />
@@ -73,7 +74,7 @@ function RequestCard({
 }) {
   return (
     <View className="gap-2 rounded-12 bg-white py-3">
-      <Text className={`px-2.5 py-[3px] font-sans font-medium text-gray-900 ${TEXT_15}`}>
+      <Text className="px-2.5 font-sans text-body-md font-medium text-gray-900">
         교환 요청을 보냈어요
       </Text>
       <View className="h-px bg-gray-75" />
@@ -88,7 +89,7 @@ function RequestCard({
           >
             <Text
               numberOfLines={1}
-              className="shrink font-sans text-label-md font-normal text-gray-700"
+              className="shrink font-sans text-body-sm font-normal text-gray-700"
             >
               {item.name}
             </Text>
@@ -108,6 +109,10 @@ type MessageItemProps = {
   onRequestItemPress?: (item: ExchangeItem) => void;
   onAcceptProposal?: (messageId: string) => void;
   onRejectProposal?: (messageId: string) => void;
+  /** F-1 [교환을 완료했어요!] */
+  onCompleteExchange?: (messageId: string) => void;
+  /** F-1 [교환에 실패했어요] · [합의하에 취소했어요] */
+  onCancelExchange?: (messageId: string) => void;
 };
 
 export function MessageItem({
@@ -115,8 +120,25 @@ export function MessageItem({
   onRequestItemPress,
   onAcceptProposal,
   onRejectProposal,
+  onCompleteExchange,
+  onCancelExchange,
 }: MessageItemProps) {
   const mine = message.sender === 'me';
+
+  if (message.type === 'completion') {
+    // 바꾸가 보내는 안내 카드라 보낸 사람과 상관없이 왼쪽
+    return (
+      <View className="w-[247px] self-start">
+        <CompletionCard
+          appointment={message.appointment}
+          state={message.state}
+          onComplete={() => onCompleteExchange?.(message.id)}
+          onFail={() => onCancelExchange?.(message.id)}
+          onCancelByAgreement={() => onCancelExchange?.(message.id)}
+        />
+      </View>
+    );
+  }
 
   if (message.type === 'proposal') {
     return (
@@ -166,7 +188,7 @@ export function MessageItem({
     <Row mine={mine} sentAt={message.sentAt}>
       <View className={`rounded-12 px-2.5 py-2 ${mine ? 'bg-gray-600' : 'bg-white'}`}>
         <Text
-          className={`font-sans font-normal ${TEXT_15} ${mine ? 'text-white' : 'text-gray-850'}`}
+          className={`font-sans font-normal ${BUBBLE_TEXT} ${mine ? 'text-white' : 'text-gray-850'}`}
         >
           {message.text}
         </Text>

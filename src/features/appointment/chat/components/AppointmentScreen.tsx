@@ -178,7 +178,7 @@ export function AppointmentScreen({ roomId }: { roomId: string }) {
             className="h-[52px] flex-row items-center gap-2 rounded-8 border border-gray-150 px-3.5"
           >
             <Icon icon={MapPinIcon} size="lg" weight="fill" color={WIRE.neutral} />
-            <Text className="flex-1 font-sans text-label-lg font-medium text-gray-600">
+            <Text className="flex-1 font-sans text-body-lg font-medium text-gray-600">
               {room.post.place}
             </Text>
             <Icon icon={CaretRightIcon} size="xl" color={WIRE.assistive} />
@@ -193,7 +193,7 @@ export function AppointmentScreen({ roomId }: { roomId: string }) {
               hitSlop={8}
               onPress={() => router.push({ pathname: '/chat/[id]/items', params: { id: room.id } })}
             >
-              <Text className="font-sans text-label-md font-normal text-gray-600">물건선택</Text>
+              <Text className="font-sans text-label-md font-medium text-gray-900">물건선택</Text>
             </Pressable>
           }
         >

@@ -1,3 +1,5 @@
+import type { CompletionState } from '@/features/completion/review/types';
+
 /** 교환글 진행 상태 */
 export type ExchangeStatus = 'available' | 'reserved' | 'completed';
 
@@ -56,7 +58,9 @@ export type ChatMessage =
   | (MessageBase & { type: 'text'; text: string })
   | (MessageBase & { type: 'image'; uri: string })
   | (MessageBase & { type: 'request'; items: ExchangeItem[] })
-  | (MessageBase & { type: 'proposal'; appointment: Appointment; state: ProposalState });
+  | (MessageBase & { type: 'proposal'; appointment: Appointment; state: ProposalState })
+  /** F-1 약속 시각이 지나면 오는 교환 완료 확인 카드 */
+  | (MessageBase & { type: 'completion'; appointment: Appointment; state: CompletionState });
 
 export type ChatRoomDetail = {
   id: string;
@@ -75,4 +79,6 @@ export type ChatRoomDetail = {
   messages: ChatMessage[];
   /** 확정된 약속 (채팅방 상단 배너). 있으면 글은 예약중 */
   appointment: Appointment | null;
+  /** 목업 전용: 상대가 이미 교환 완료로 답한 상태. 서버가 붙으면 완료 요청의 응답으로 안다 */
+  partnerCompleted?: boolean;
 };

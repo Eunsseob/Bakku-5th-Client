@@ -77,11 +77,9 @@ export function ChatListScreen() {
         }
       />
       {rooms.length === 0 ? (
-        // 채팅·약속-1(비어있음): 16 Medium 회색 문구 + 회색 버튼
+        // 채팅·약속-1(비어있음): body/lg Medium 회색 문구 + 회색 버튼
         <View className="flex-1 items-center justify-center gap-4">
-          <Text className="font-sans text-label-lg font-medium text-gray-300">
-            채팅방이 없어요.
-          </Text>
+          <Text className="font-sans text-body-lg font-medium text-gray-300">채팅방이 없어요.</Text>
           <Pressable
             accessibilityRole="button"
             onPress={() => router.navigate('/home')}
@@ -104,7 +102,7 @@ export function ChatListScreen() {
             />
           )}
           ListEmptyComponent={
-            <Text className="py-10 text-center font-sans text-label-lg font-medium text-gray-300">
+            <Text className="py-10 text-center font-sans text-body-lg font-medium text-gray-300">
               조건에 맞는 채팅방이 없어요.
             </Text>
           }

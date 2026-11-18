@@ -1,49 +1,48 @@
-import { Link } from 'expo-router';
-import { Pressable, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { MapPinIcon } from 'phosphor-react-native/src/icons/MapPin';
 
-const tabs = [
-  { id: 'home', label: '홈', href: '../home' },
-  { id: 'exchange-map', label: '교환 지도', href: '../exchange-map' },
-  { id: 'chat', label: '채팅', href: '../chat' },
-  { id: 'mypage', label: '마이', href: '../mypage' },
-] as const;
+import { BottomNavigation, type BottomNavigationItem } from './BottomNavigation';
+import {
+  HomeFilledIcon,
+  HomeOutlinedIcon,
+  MessageFilledIcon,
+  MessageOutlinedIcon,
+  UserFilledIcon,
+  UserOutlinedIcon,
+} from './TabIcons';
 
-export type MainTab = (typeof tabs)[number]['id'];
+// 메인 탭 바: BDS Bottom Navigation 에 앱의 탭을 넣은 것
+// 아이콘은 Figma UI-Flow '(현)UI 전개 시안' 기준: 선택된 탭은 채운 모양, 나머지는 테두리 모양
+const TABS = [
+  { key: 'home', label: '홈', icon: HomeOutlinedIcon, selectedIcon: HomeFilledIcon },
+  // Figma 화면에는 없는 개발용 탭
+  { key: 'exchange-map', label: '교환 지도', icon: MapPinIcon },
+  { key: 'chat', label: '채팅', icon: MessageOutlinedIcon, selectedIcon: MessageFilledIcon },
+  { key: 'mypage', label: '마이', icon: UserOutlinedIcon, selectedIcon: UserFilledIcon },
+] as const satisfies readonly BottomNavigationItem[];
 
-export default function MainTabBar({ active }: { active: MainTab }) {
+export type MainTab = (typeof TABS)[number]['key'];
+
+type MainTabBarProps = {
+  active: MainTab;
+  /** 탭 이동. 없으면 같은 그룹의 탭 화면으로 바꿔 끼운다 */
+  onSelect?: (tab: MainTab) => void;
+  /** 하단 홈 인디케이터 여백 */
+  safeArea?: boolean;
+};
+
+export default function MainTabBar({ active, onSelect, safeArea = true }: MainTabBarProps) {
   return (
-    <View className="h-16 shrink-0 flex-row border-t-2 border-[#E0E0E6] bg-white">
-      {tabs.map((tab) => (
-        // 11.06 현재 선택된 탭이면 이동을 막는 처리 코드 수정
-        // <Link key={tab.id} href={tab.href} replace asChild>
-        <Link
-          key={tab.id}
-          href={tab.href}
-          replace
-          asChild
-          onPress={(event) => {
-            if (active === tab.id) {
-              event.preventDefault();
-            }
-          }}
-        >
-          <Pressable
-            accessibilityRole="tab"
-            accessibilityState={{ selected: active === tab.id }}
-            className="flex-1 items-center pt-[6px]"
-          >
-            <View
-              className={`h-5 w-5 rounded-[5px] ${active === tab.id ? 'bg-[#2E2E33]' : 'bg-[#E0E0E6]'}`}
-            />
-            <Text
-              style={{ fontFamily: 'Pretendard', includeFontPadding: false }}
-              className={`mt-1 text-[11px] leading-[15px] ${active === tab.id ? 'text-[#2E2E33]' : 'text-[#737380]'}`}
-            >
-              {tab.label}
-            </Text>
-          </Pressable>
-        </Link>
-      ))}
-    </View>
+    <BottomNavigation
+      items={[...TABS]}
+      selectedKey={active}
+      safeArea={safeArea}
+      onSelect={(tab) => {
+        // 지금 탭을 다시 누르면 아무것도 하지 않는다
+        if (tab === active) return;
+        if (onSelect) onSelect(tab);
+        else router.replace(`/(main)/${tab}`);
+      }}
+    />
   );
 }
