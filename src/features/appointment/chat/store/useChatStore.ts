@@ -1,3 +1,4 @@
+import type { CompleteResult, CompletionState } from '@/features/completion/review/types';
 import { create } from 'zustand';
 
 import { getMockChatRoom, MOCK_CHAT_ROOMS } from '../api/mockChats';
@@ -20,6 +21,10 @@ type ChatState = {
   /** 받은 제안 수락 → 카드가 '약속 확정'으로, 글은 예약중 */
   accept: (roomId: string, messageId: string) => void;
   reject: (roomId: string, messageId: string) => void;
+  /** F-1 [교환을 완료했어요!] → 확정: 카드가 '교환에 성공했어요!' 로, 글은 교환 완료 */
+  completeExchange: (roomId: string, messageId: string) => CompleteResult;
+  /** F-1 [교환에 실패했어요] · [합의하에 취소했어요]: 카드가 '약속이 취소됐어요' 로, 글은 다시 교환 가능 */
+  cancelExchange: (roomId: string, messageId: string) => void;
 };
 
 let sequence = 0;
@@ -34,7 +39,7 @@ function initialRooms() {
   return rooms;
 }
 
-export const useChatStore = create<ChatState>((set) => {
+export const useChatStore = create<ChatState>((set, get) => {
   /** 한 채팅방만 바꾼다 */
   const update = (roomId: string, change: (room: ChatRoomDetail) => ChatRoomDetail) =>
     set((state) => {
@@ -55,6 +60,13 @@ export const useChatStore = create<ChatState>((set) => {
         item.id === messageId ? { ...proposal, state } : item,
       ),
     };
+  };
+
+  /** 아직 답하지 않은(asking) 교환 완료 확인 카드만 바꾼다 */
+  const answer = (room: ChatRoomDetail, messageId: string, state: CompletionState) => {
+    const card = room.messages.find((item) => item.id === messageId);
+    if (card?.type !== 'completion' || card.state !== 'asking') return null;
+    return room.messages.map((item) => (item.id === messageId ? { ...card, state } : item));
   };
 
   return {
@@ -88,6 +100,33 @@ export const useChatStore = create<ChatState>((set) => {
       update(roomId, (room) => {
         const result = settle(room, messageId, 'rejected');
         return result ? { ...room, messages: result.messages } : room;
+      }),
+
+    completeExchange: (roomId, messageId) => {
+      const alreadyCompleted = !!get().rooms[roomId]?.partnerCompleted;
+      update(roomId, (room) => {
+        const messages = answer(room, messageId, 'completed');
+        if (!messages) return room;
+        return {
+          ...room,
+          post: { ...room.post, status: 'completed' },
+          appointment: null,
+          messages,
+        };
+      });
+      return alreadyCompleted ? 'alreadyCompleted' : 'completed';
+    },
+
+    cancelExchange: (roomId, messageId) =>
+      update(roomId, (room) => {
+        const messages = answer(room, messageId, 'cancelled');
+        if (!messages) return room;
+        return {
+          ...room,
+          post: { ...room.post, status: 'available' },
+          appointment: null,
+          messages,
+        };
       }),
   };
 });

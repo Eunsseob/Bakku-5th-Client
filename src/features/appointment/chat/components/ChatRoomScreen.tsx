@@ -6,7 +6,7 @@ import { CalendarCheckIcon } from 'phosphor-react-native/src/icons/CalendarCheck
 import { DotsThreeVerticalIcon } from 'phosphor-react-native/src/icons/DotsThreeVertical';
 import { ImageIcon } from 'phosphor-react-native/src/icons/Image';
 import { MapPinIcon } from 'phosphor-react-native/src/icons/MapPin';
-import { Fragment, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -16,6 +16,7 @@ import {
   View,
 } from 'react-native';
 
+import { CompleteConfirmSheet, CompletionToast } from '@/features/completion/review';
 import { EmptyState, Icon, TopNavigation } from '@/shared/components';
 
 import { useChatStore } from '../store/useChatStore';
@@ -29,14 +30,17 @@ import { ExchangeStatusBadge } from './StatusBadges';
 import { WIRE, WireDialog } from './wire';
 
 // E 채팅·약속-2 ~ 6 (1차): 1:1 채팅방, + 메뉴, 약속 제안 카드, 약속 수락 모달, 약속 확정(예약중)
+// F-1 (1차): 교환 완료 확인 카드, 교환 확정 시트, 성공 · 취소 카드, 토스트
 
 /** + 메뉴 시트가 사라지는 시간 */
 const SHEET_CLOSE_MS = 350;
+/** 토스트가 떠 있는 시간 */
+const TOAST_MS = 3000;
 
 function plusMenu(reserved: boolean): SheetMenuOption[] {
   return [
     { key: 'photo', label: '사진', icon: ImageIcon },
-    // 약속이 확정(예약중)되면 새 약속을 잡을 수 없다
+    // 약속이 확정(예약중)됐거나 교환이 끝나면 새 약속을 잡을 수 없다
     { key: 'appointment', label: '약속 잡기', icon: CalendarCheckIcon, disabled: reserved },
     { key: 'place', label: '장소 보내기 (2차)', icon: MapPinIcon, disabled: true },
   ];
@@ -78,11 +82,22 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
   const send = useChatStore((state) => state.send);
   const accept = useChatStore((state) => state.accept);
   const reject = useChatStore((state) => state.reject);
+  const completeExchange = useChatStore((state) => state.completeExchange);
+  const cancelExchange = useChatStore((state) => state.cancelExchange);
 
   const [menuOpen, setMenuOpen] = useState(false);
   /** 수락 확인 모달을 띄운 제안 카드 */
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
+  /** 교환 확정 시트를 띄운 교환 완료 확인 카드 */
+  const [completingId, setCompletingId] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const scrollRef = useRef<ScrollViewInstance>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), TOAST_MS);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   if (!room) {
     return (
@@ -102,6 +117,19 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
     });
     if (!result.canceled && result.assets[0]) {
       send(room.id, { type: 'image', uri: result.assets[0].uri });
+    }
+  };
+
+  const confirmComplete = () => {
+    const messageId = completingId;
+    setCompletingId(null);
+    if (!messageId) return;
+    try {
+      if (completeExchange(room.id, messageId) === 'alreadyCompleted') {
+        setToast('상대가 먼저 교환했어요로 답해 완료됐어요');
+      }
+    } catch {
+      setToast('잠시 후 다시 시도해 주세요');
     }
   };
 
@@ -140,28 +168,37 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView
-          ref={scrollRef}
-          className="flex-1"
-          contentContainerClassName="gap-2 px-1.5 pb-4"
-          keyboardDismissMode="interactive"
-          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
-        >
-          {room.messages.map((message, index) => {
-            const previous = room.messages[index - 1];
-            const showDate = !previous || isDifferentDay(previous.sentAt, message.sentAt);
-            return (
-              <Fragment key={message.id}>
-                {showDate ? <DateDivider date={message.sentAt} /> : null}
-                <MessageItem
-                  message={message}
-                  onAcceptProposal={setAcceptingId}
-                  onRejectProposal={(messageId) => reject(room.id, messageId)}
-                />
-              </Fragment>
-            );
-          })}
-        </ScrollView>
+        <View className="flex-1">
+          <ScrollView
+            ref={scrollRef}
+            className="flex-1"
+            contentContainerClassName="gap-2 px-1.5 pb-4"
+            keyboardDismissMode="interactive"
+            onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
+          >
+            {room.messages.map((message, index) => {
+              const previous = room.messages[index - 1];
+              const showDate = !previous || isDifferentDay(previous.sentAt, message.sentAt);
+              return (
+                <Fragment key={message.id}>
+                  {showDate ? <DateDivider date={message.sentAt} /> : null}
+                  <MessageItem
+                    message={message}
+                    onAcceptProposal={setAcceptingId}
+                    onRejectProposal={(messageId) => reject(room.id, messageId)}
+                    onCompleteExchange={setCompletingId}
+                    onCancelExchange={(messageId) => cancelExchange(room.id, messageId)}
+                  />
+                </Fragment>
+              );
+            })}
+          </ScrollView>
+          {toast ? (
+            <View pointerEvents="none" className="absolute inset-x-4 bottom-[21px]">
+              <CompletionToast message={toast} />
+            </View>
+          ) : null}
+        </View>
         <ChatInput
           onSend={(text) => send(room.id, { type: 'text', text })}
           onPlusPress={() => setMenuOpen(true)}
@@ -170,7 +207,7 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
 
       <SheetMenu
         visible={menuOpen}
-        options={plusMenu(room.post.status === 'reserved')}
+        options={plusMenu(room.post.status !== 'available')}
         onSelect={selectMenu}
         onClose={() => setMenuOpen(false)}
       />
@@ -185,6 +222,12 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
           if (acceptingId) accept(room.id, acceptingId);
           setAcceptingId(null);
         }}
+      />
+      {/* F-1: 교환 확정 시트 */}
+      <CompleteConfirmSheet
+        visible={completingId !== null}
+        onCancel={() => setCompletingId(null)}
+        onConfirm={confirmComplete}
       />
     </View>
   );

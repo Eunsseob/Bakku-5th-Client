@@ -33,7 +33,8 @@ export {
 // 데코레이션 Decoration: 인터렉션 레이어
 export { InteractionLayer, PRESSED_OPACITY } from './decoration/InteractionLayer';
 
-// 디스플레이 Display: 아이콘 · 썸네일 · 모달
+// 디스플레이 Display: 바텀 시트 · 아이콘 · 썸네일 · 모달
+export { BottomSheet } from './display/BottomSheet';
 export { ICON_SIZE, Icon, type IconComponent, type IconSize } from './display/Icon';
 export { Modal, type ModalButtonLayout } from './display/Modal';
 export {
@@ -91,8 +92,9 @@ export {
   type TopNavigationTab,
 } from './navigation/TopNavigation';
 
-// 메시지 Message: 엠티 스테이트
+// 메시지 Message: 엠티 스테이트 · 토스트
 export { EmptyState } from './message/EmptyState';
+export { Toast, type ToastLeading } from './message/Toast';
 
 // 지도 Map: 핀
 export { PLACE_PIN_ANCHOR, PlacePin } from './map/PlacePin';

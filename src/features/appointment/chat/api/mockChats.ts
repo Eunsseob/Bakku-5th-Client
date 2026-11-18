@@ -58,6 +58,28 @@ export const MOCK_CHAT_ROOMS: ChatRoomSummary[] = [
     direction: 'sent',
   },
   {
+    // F-1: 약속 시각이 지나 교환 완료를 묻는 중
+    id: '8',
+    nickname: '하치와레러버',
+    lastMessage: '교환을 무사히 완료했나요?',
+    lastMessageAt: minutesAgo(30),
+    unreadCount: 1,
+    muted: false,
+    status: 'reserved',
+    direction: 'sent',
+  },
+  {
+    // F-1: 상대가 먼저 교환 완료로 답한 방 (완료를 누르면 토스트)
+    id: '9',
+    nickname: '우사기 팬',
+    lastMessage: '교환을 무사히 완료했나요?',
+    lastMessageAt: minutesAgo(90),
+    unreadCount: 1,
+    muted: false,
+    status: 'reserved',
+    direction: 'received',
+  },
+  {
     id: '5',
     nickname: '키링부자',
     lastMessage: '사진',
@@ -122,6 +144,17 @@ const SATURDAY_3PM: Appointment = {
   isNow: false,
 };
 
+/** 어제 오후 3시에 만난 약속 (교환 완료 확인 카드가 온 방) */
+const YESTERDAY_3PM: Appointment = {
+  meetAt: daysAgo(1, 15, 0),
+  place: '홍대입구역 9번 출구',
+  items: REQUEST_ITEMS.slice(0, 3),
+  isNow: false,
+};
+
+/** 약속을 잡고 약속 시각이 지나 교환 완료를 묻는 방 */
+const COMPLETION_ROOMS = ['8', '9'];
+
 function buildMessages(room: ChatRoomSummary): ChatMessage[] {
   const start = new Date(new Date(room.lastMessageAt).getTime() - 20 * 60 * 1000).toISOString();
   const request: ChatMessage = {
@@ -157,6 +190,30 @@ function buildMessages(room: ChatRoomSummary): ChatMessage[] {
         sentAt: room.lastMessageAt,
         state: 'pending',
         appointment: TOMORROW_3PM,
+      },
+    ];
+  }
+  if (COMPLETION_ROOMS.includes(room.id)) {
+    // F-1: 약속 확정 → 약속 시각이 지나 '교환을 무사히 완료했나요?' 카드
+    const before = daysAgo(2, 10, 0);
+    return [
+      { ...request, sentAt: before },
+      { ...intro, sentAt: before },
+      {
+        id: `${room.id}-m3`,
+        type: 'proposal',
+        sender: request.sender,
+        sentAt: before,
+        state: 'accepted',
+        appointment: YESTERDAY_3PM,
+      },
+      {
+        id: `${room.id}-m4`,
+        type: 'completion',
+        sender: 'other',
+        sentAt: room.lastMessageAt,
+        state: 'asking',
+        appointment: YESTERDAY_3PM,
       },
     ];
   }
@@ -210,6 +267,8 @@ export function getMockChatRoom(id: string): ChatRoomDetail | undefined {
     },
     requestItems: REQUEST_ITEMS,
     messages: buildMessages(room),
-    appointment: room.id === '4' ? SATURDAY_3PM : null,
+    appointment:
+      room.id === '4' ? SATURDAY_3PM : COMPLETION_ROOMS.includes(room.id) ? YESTERDAY_3PM : null,
+    partnerCompleted: room.id === '9',
   };
 }

@@ -3,6 +3,7 @@ import { CaretRightIcon } from 'phosphor-react-native/src/icons/CaretRight';
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { CompletionCard } from '@/features/completion/review';
 import { Icon } from '@/shared/components';
 
 import type { ChatMessage, ExchangeItem } from '../types';
@@ -108,6 +109,10 @@ type MessageItemProps = {
   onRequestItemPress?: (item: ExchangeItem) => void;
   onAcceptProposal?: (messageId: string) => void;
   onRejectProposal?: (messageId: string) => void;
+  /** F-1 [교환을 완료했어요!] */
+  onCompleteExchange?: (messageId: string) => void;
+  /** F-1 [교환에 실패했어요] · [합의하에 취소했어요] */
+  onCancelExchange?: (messageId: string) => void;
 };
 
 export function MessageItem({
@@ -115,8 +120,25 @@ export function MessageItem({
   onRequestItemPress,
   onAcceptProposal,
   onRejectProposal,
+  onCompleteExchange,
+  onCancelExchange,
 }: MessageItemProps) {
   const mine = message.sender === 'me';
+
+  if (message.type === 'completion') {
+    // 바꾸가 보내는 안내 카드라 보낸 사람과 상관없이 왼쪽
+    return (
+      <View className="w-[247px] self-start">
+        <CompletionCard
+          appointment={message.appointment}
+          state={message.state}
+          onComplete={() => onCompleteExchange?.(message.id)}
+          onFail={() => onCancelExchange?.(message.id)}
+          onCancelByAgreement={() => onCancelExchange?.(message.id)}
+        />
+      </View>
+    );
+  }
 
   if (message.type === 'proposal') {
     return (
