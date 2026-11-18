@@ -1,8 +1,8 @@
 import { semantic } from '@/design-tokens';
 import { Pressable, type PressableProps, Text, View } from 'react-native';
 
-import { Icon, type IconComponent, type IconSize } from './Icon';
-import { InteractionLayer } from './InteractionLayer';
+import { Icon, type IconComponent, type IconSize } from '../display/Icon';
+import { InteractionLayer } from '../decoration/InteractionLayer';
 
 // BDS Label Button: 배경 없이 글자(와 아이콘)만 있는 버튼
 export type LabelButtonHierarchy = 'accent' | 'primary' | 'secondary' | 'tertiary';

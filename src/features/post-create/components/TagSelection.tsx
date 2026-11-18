@@ -1,4 +1,4 @@
-import { Icon } from '@/shared/components/Icon';
+import { Button, Divider, Icon, TopNavigation } from '@/shared/components';
 import { router, Stack } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -13,9 +13,6 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { XIcon } from 'phosphor-react-native/src/icons/X';
 import { XCircleIcon } from 'phosphor-react-native/src/icons/XCircle';
-import { Button } from '@/shared/components/Button';
-import { Divider } from '@/shared/components/Divider';
-import { TopNavigation } from '@/shared/components/TopNavigation';
 import { useExchangeStore } from '@/features/home/store/useExchangeStore';
 import { useWriteTagsStore } from '../store/useWriteTagsStore';
 

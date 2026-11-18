@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { Icon } from '@/shared/components/Icon';
+import { Icon } from '@/shared/components';
 import { PlusIcon } from 'phosphor-react-native/src/icons/Plus';
 import HomeHeader, { type MenuAnchor } from './HomeHeader';
 import ExchangePostCard from './ExchangePostCard';

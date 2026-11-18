@@ -1,9 +1,5 @@
 import { useSignupStore } from '@/features/auth/store/useSignupStore';
-import { Button } from '@/shared/components/Button';
-import { Icon } from '@/shared/components/Icon';
-import { IconButton } from '@/shared/components/IconButton';
-import { Thumbnail } from '@/shared/components/Thumbnail';
-import { TopNavigation } from '@/shared/components/TopNavigation';
+import { Button, Icon, IconButton, Thumbnail, TopNavigation } from '@/shared/components';
 import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { CaretLeftIcon } from 'phosphor-react-native/src/icons/CaretLeft';

@@ -1,8 +1,8 @@
 import { semantic } from '@/design-tokens';
 import { Pressable, type PressableProps } from 'react-native';
 
-import { Icon, type IconComponent } from './Icon';
-import { InteractionLayer } from './InteractionLayer';
+import { Icon, type IconComponent } from '../display/Icon';
+import { InteractionLayer } from '../decoration/InteractionLayer';
 
 // BDS Icon Button: 아이콘만 있는 버튼. 크기는 아이콘 크기와 같다.
 export type IconButtonHierarchy = 'accent' | 'primary' | 'secondary' | 'tertiary';

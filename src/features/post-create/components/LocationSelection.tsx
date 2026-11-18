@@ -1,5 +1,4 @@
-import { Chip } from '@/shared/components/Chip';
-import { Icon } from '@/shared/components/Icon';
+import { Chip, Icon } from '@/shared/components';
 import { XIcon } from 'phosphor-react-native/src/icons/X';
 import * as Location from 'expo-location';
 import { MagnifyingGlassIcon } from 'phosphor-react-native/src/icons/MagnifyingGlass';

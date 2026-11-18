@@ -7,8 +7,8 @@ import { XIcon } from 'phosphor-react-native/src/icons/X';
 import { useState } from 'react';
 import { Text, TextInput, type TextInputProps, View } from 'react-native';
 
-import { Icon, type IconComponent } from './Icon';
-import { IconButton } from './IconButton';
+import { Icon, type IconComponent } from '../display/Icon';
+import { IconButton } from '../action/IconButton';
 
 // BDS Text Field: 레이블 + 입력창(field/area) + 헬퍼 메시지
 export type TextFieldTrailing = 'delete' | 'dropDown' | 'move' | 'time' | 'date';

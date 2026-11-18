@@ -1,5 +1,4 @@
-import { Button } from '@/shared/components/Button';
-import { IconButton } from '@/shared/components/IconButton';
+import { Button, IconButton } from '@/shared/components';
 import { CaretLeftIcon } from 'phosphor-react-native/src/icons/CaretLeft';
 import { CaretRightIcon } from 'phosphor-react-native/src/icons/CaretRight';
 import { router, Stack, useFocusEffect } from 'expo-router';

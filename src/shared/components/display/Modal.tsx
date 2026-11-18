@@ -1,6 +1,6 @@
 import { Pressable, Modal as RNModal, Text, View } from 'react-native';
 
-import { Button } from './Button';
+import { Button } from '../action/Button';
 
 // BDS Modal: 화면 위에 띄우는 확인용 대화상자
 export type ModalButtonLayout = 'horizontal' | 'vertical';

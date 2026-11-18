@@ -1,7 +1,7 @@
 import { semantic } from '@/design-tokens';
 import { Text, View } from 'react-native';
 
-import { Icon, type IconComponent } from './Icon';
+import { Icon, type IconComponent } from '../display/Icon';
 
 // BDS Badge (+ Theme Badge): 상태·속성을 짧게 표시하는 라벨
 export type BadgeHierarchy = 'accent' | 'primary' | 'secondary' | 'tertiary';

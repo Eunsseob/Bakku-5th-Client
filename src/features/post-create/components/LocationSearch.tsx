@@ -1,4 +1,4 @@
-import { Icon } from '@/shared/components/Icon';
+import { Icon } from '@/shared/components';
 import { searchPlaces, type PlaceResult } from '../api/placeSearch';
 import { CaretLeftIcon } from 'phosphor-react-native/src/icons/CaretLeft';
 import { MapPinIcon } from 'phosphor-react-native/src/icons/MapPin';

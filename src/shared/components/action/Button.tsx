@@ -1,8 +1,8 @@
 import { semantic } from '@/design-tokens';
 import { Pressable, type PressableProps, Text, View } from 'react-native';
 
-import { Icon, type IconComponent, type IconSize } from './Icon';
-import { InteractionLayer } from './InteractionLayer';
+import { Icon, type IconComponent, type IconSize } from '../display/Icon';
+import { InteractionLayer } from '../decoration/InteractionLayer';
 
 // BDS Block Button
 export type ButtonHierarchy = 'accent' | 'primary' | 'secondary';

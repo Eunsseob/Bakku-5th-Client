@@ -1,7 +1,4 @@
-import { Button } from '@/shared/components/Button';
-import { Icon } from '@/shared/components/Icon';
-import { TextField } from '@/shared/components/TextField';
-import { TopNavigation } from '@/shared/components/TopNavigation';
+import { Button, Icon, TextField, TopNavigation } from '@/shared/components';
 import { CaretRightIcon } from 'phosphor-react-native/src/icons/CaretRight';
 import { MapPinIcon } from 'phosphor-react-native/src/icons/MapPin';
 import { useState } from 'react';

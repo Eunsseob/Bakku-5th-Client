@@ -1,9 +1,4 @@
-import { Button } from '@/shared/components/Button';
-import { Chip } from '@/shared/components/Chip';
-import { Icon } from '@/shared/components/Icon';
-import { TextField } from '@/shared/components/TextField';
-import { Thumbnail } from '@/shared/components/Thumbnail';
-import { TopNavigation } from '@/shared/components/TopNavigation';
+import { Button, Chip, Icon, TextField, Thumbnail, TopNavigation } from '@/shared/components';
 import { CaretRightIcon } from 'phosphor-react-native/src/icons/CaretRight';
 import { XIcon } from 'phosphor-react-native/src/icons/X';
 import { useState } from 'react';

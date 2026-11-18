@@ -1,8 +1,4 @@
-import { Divider } from '@/shared/components/Divider';
-import { Icon } from '@/shared/components/Icon';
-import { IconButton } from '@/shared/components/IconButton';
-import { Tag } from '@/shared/components/Tag';
-import { Thumbnail } from '@/shared/components/Thumbnail';
+import { Divider, Icon, IconButton, Tag, Thumbnail } from '@/shared/components';
 import { DotsThreeVerticalIcon } from 'phosphor-react-native/src/icons/DotsThreeVertical';
 import { MapPinIcon } from 'phosphor-react-native/src/icons/MapPin';
 import { Pressable, Text, View } from 'react-native';
