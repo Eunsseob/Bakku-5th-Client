@@ -42,9 +42,7 @@ export function OptionCard({
           {title}
         </Text>
         {subtitle ? (
-          <Text className="font-sans text-[13px] font-normal leading-[20px] text-gray-600">
-            {subtitle}
-          </Text>
+          <Text className="font-sans text-body-xs font-normal text-gray-600">{subtitle}</Text>
         ) : null}
       </View>
       <WireRadio checked={selected} />

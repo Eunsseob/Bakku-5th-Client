@@ -2,6 +2,7 @@ import { CheckIcon } from 'phosphor-react-native/src/icons/Check';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { semantic } from '@/design-tokens';
 import { Icon, type IconComponent } from '@/shared/components';
 
 import { WIRE } from './wire';
@@ -74,7 +75,9 @@ export function SheetMenu({
                   disabled={option.disabled}
                   onPress={() => onSelect(option.key)}
                   className="h-11 flex-row items-center gap-3 px-4"
-                  style={({ pressed }) => ({ backgroundColor: pressed ? '#0000000a' : undefined })}
+                  style={({ pressed }) => ({
+                    backgroundColor: pressed ? semantic.fill.subtlest : undefined,
+                  })}
                 >
                   {option.icon ? <Icon icon={option.icon} size="lg" color={color} /> : null}
                   <Text

@@ -46,7 +46,7 @@ function plusMenu(reserved: boolean): SheetMenuOption[] {
   ];
 }
 
-/** 교환글 요약: 사진 48 r8 · 제목 16 SemiBold · 요약 12 Medium · 상태 태그 */
+/** 교환글 요약: 사진 48 r8 · 제목 label/lg SemiBold · 요약 body/2xs Medium · 상태 태그 */
 function PostSummary({ post }: { post: ChatRoomDetail['post'] }) {
   return (
     <View className="flex-row items-center gap-4 border-b border-gray-75 bg-white px-4 py-3">
@@ -66,7 +66,7 @@ function PostSummary({ post }: { post: ChatRoomDetail['post'] }) {
           </Text>
           <View className="flex-row items-center gap-0.5">
             <Icon icon={ArrowsLeftRightIcon} size="sm" color={WIRE.alternative} />
-            <Text numberOfLines={1} className="font-sans text-label-sm font-medium text-gray-500">
+            <Text numberOfLines={1} className="font-sans text-body-2xs font-medium text-gray-500">
               {post.offerSummary}
             </Text>
           </View>
@@ -155,6 +155,7 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
     <View className="flex-1 bg-gray-50">
       <TopNavigation
         type="screen"
+        titleSize="sm"
         title={room.partner.nickname}
         description={`교환 ${room.partner.exchangeCount}회`}
         onBack={() => router.back()}

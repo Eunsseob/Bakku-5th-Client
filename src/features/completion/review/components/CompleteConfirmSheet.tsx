@@ -2,8 +2,8 @@ import { Modal, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // F-1 '한쪽만 확정해도 교환 완료 처리돼요' 시트. Figma UI-Flow '교환 확정 - 메시지 선택시' 값 그대로
-// 흐린 배경 #2e2e33 40%, 흰 시트 위 모서리 20, 좌우 16
-// 제목 20 SemiBold → 16 → 설명 16 Regular → 37 → [취소 126][교환 확정] 52 r12, 사이 9
+// 흐린 배경 curtain-dim, 흰 시트 위 모서리 20, 좌우 16
+// 제목 title/2 → 16 → 설명 label/lg → 37 → [취소 126 gray-150][교환 확정 gray-700] 52 r12, 사이 9
 
 type CompleteConfirmSheetProps = {
   visible: boolean;
@@ -27,7 +27,7 @@ export function CompleteConfirmSheet({ visible, onCancel, onConfirm }: CompleteC
           accessibilityRole="button"
           accessibilityLabel="닫기"
           onPress={onCancel}
-          className="absolute inset-0 bg-[#2e2e3366]"
+          className="absolute inset-0 bg-curtain-dim"
         />
         <View
           accessibilityViewIsModal
@@ -47,15 +47,15 @@ export function CompleteConfirmSheet({ visible, onCancel, onConfirm }: CompleteC
             <Pressable
               accessibilityRole="button"
               onPress={onCancel}
-              className="h-[52px] w-[126px] items-center justify-center rounded-12 bg-[#d1d5dc]"
+              className="h-[52px] w-[126px] items-center justify-center rounded-12 bg-gray-150"
               style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
             >
-              <Text className="font-sans text-label-lg font-semibold text-[#99a1af]">취소</Text>
+              <Text className="font-sans text-label-lg font-semibold text-gray-300">취소</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
               onPress={onConfirm}
-              className="h-[52px] flex-1 items-center justify-center rounded-12 bg-[#364153]"
+              className="h-[52px] flex-1 items-center justify-center rounded-12 bg-gray-700"
               style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
             >
               <Text className="font-sans text-label-lg font-semibold text-white">교환 확정</Text>

@@ -2,6 +2,7 @@ import { Image } from 'expo-image';
 import { BellSlashIcon } from 'phosphor-react-native/src/icons/BellSlash';
 import { Pressable, Text, View } from 'react-native';
 
+import { semantic } from '@/design-tokens';
 import { Icon } from '@/shared/components';
 
 import type { ChatRoomSummary } from '../types';
@@ -22,7 +23,7 @@ export function ChatListItem({ room, onPress }: ChatListItemProps) {
       accessibilityLabel={`${room.nickname} 채팅방${room.unreadCount ? `, 안 읽은 메시지 ${room.unreadCount}개` : ''}`}
       onPress={onPress}
       className="flex-row items-center gap-3 px-4 py-2.5"
-      style={({ pressed }) => ({ backgroundColor: pressed ? '#00000008' : undefined })}
+      style={({ pressed }) => ({ backgroundColor: pressed ? semantic.fill.subtlest : undefined })}
     >
       {room.thumbnailUrl ? (
         <Image

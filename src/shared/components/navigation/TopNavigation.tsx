@@ -65,6 +65,8 @@ type ScreenProps = CommonProps & {
   onTrailingPress?: () => void;
   /** 오른쪽 아이콘 버튼 (trailingLabel 이 없을 때) */
   actions?: TopNavigationAction[];
+  /** 제목 크기. sm 은 1차 와이어프레임 채팅방 헤더(제목 14 SemiBold · 설명 11 Regular) */
+  titleSize?: 'md' | 'sm';
 };
 
 type SearchProps = CommonProps & {
@@ -111,6 +113,8 @@ function Tabs({ items, selectedKey, onSelect }: TabsProps) {
             hierarchy={selected ? 'primary' : 'secondary'}
             size="lg"
             trailingIconVisible={tab.trailingIconVisible}
+            // 1차 와이어프레임 칩 색: 선택 gray-700 · 미선택 gray-50
+            className={selected ? '!bg-gray-700' : '!bg-gray-50'}
             onPress={() => onSelect(tab.key)}
           >
             {tab.label}
@@ -185,7 +189,9 @@ function ScreenBar({
   trailingLabel,
   onTrailingPress,
   actions = [],
+  titleSize = 'md',
 }: ScreenProps) {
+  const small = titleSize === 'sm';
   return (
     <View className="h-14 flex-row items-center justify-between p-1.5">
       {title ? (
@@ -196,14 +202,14 @@ function ScreenBar({
           <Text
             numberOfLines={1}
             accessibilityRole="header"
-            className="font-sans text-label-lg font-semibold text-object-bolder"
+            className={`font-sans font-semibold ${small ? 'text-label-md text-object-boldest' : 'text-label-lg text-object-bolder'}`}
           >
             {title}
           </Text>
           {description ? (
             <Text
               numberOfLines={1}
-              className="font-sans text-body-2xs font-normal text-object-alternative"
+              className={`font-sans font-normal text-object-alternative ${small ? 'text-label-xs' : 'text-body-2xs'}`}
             >
               {description}
             </Text>

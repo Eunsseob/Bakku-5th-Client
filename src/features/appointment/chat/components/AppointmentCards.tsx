@@ -56,7 +56,7 @@ export function ProposalCard({ mine, appointment, state, onAccept, onReject }: P
   return (
     <View className="gap-4 rounded-12 bg-white px-2.5 py-3">
       <View className="gap-2">
-        <Text className="py-[3px] font-sans text-[15px] font-medium leading-[18px] text-gray-700">
+        <Text className="font-sans text-body-md font-medium text-gray-700">
           {confirmed ? '약속 확정' : '약속을 제안해요'}
         </Text>
         <View className="gap-3">

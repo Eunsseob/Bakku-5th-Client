@@ -1,3 +1,4 @@
+import { primitive } from '@/design-tokens';
 import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -6,13 +7,16 @@ import { IconBadgeAnchor, NotificationBadge } from './NotificationBadge';
 
 // Bottom Navigation: 화면 하단 탭 바 (48px 탭 + 홈 인디케이터 영역)
 // 1차 화면은 Figma UI-Flow '(현)UI 전개 시안' 의 BottomNavigation 값을 쓴다.
-//   높이 48 (위 6 · 아래 2), 탭 위 2, 아이콘 24, 글자 label/2xs/normal(10 Medium)
-//   선택 #4a5565 (foreground/neutral) · 미선택 #99a1af (foreground/assistive) · 위 선 #e5e7eb (stroke/neutral)
+//   높이 48 (위 6 · 아래 2), 탭 위 2, 아이콘 24, 글자 label/2xs (선택 10 SemiBold · 미선택 10 Medium)
+//   선택 gray-600 · 미선택 gray-300 · 위 선 gray-75 (와이어프레임 #4a5565 · #99a1af · #e5e7eb 에 가장 가까운 BDS 회색)
 // BDS 하이파이 화면으로 바뀌면 BDS 값(56px, label/xs, object-bolder · object-subtler)으로 돌린다.
 
+// primitive.gray 는 JS 에서 단계를 펼쳐 만들어 숫자 키 타입이 빠져 있다
+const GRAY = primitive.gray as unknown as Record<number, string>;
+
 const COLOR = {
-  selected: '#4a5565',
-  unselected: '#99a1af',
+  selected: GRAY[600],
+  unselected: GRAY[300],
 } as const;
 
 export type BottomNavigationItem<Key extends string = string> = {
@@ -50,7 +54,7 @@ export function BottomNavigation<Key extends string>({
     >
       <View
         accessibilityRole="tablist"
-        className="h-12 flex-row border-t border-[#e5e7eb] pb-0.5 pt-1.5"
+        className="h-12 flex-row border-t border-gray-75 pb-0.5 pt-1.5"
       >
         {items.map((item) => {
           const selected = item.key === selectedKey;
@@ -81,7 +85,7 @@ export function BottomNavigation<Key extends string>({
                 ) : null}
               </View>
               <Text
-                className={`self-stretch text-center font-sans text-label-2xs font-medium ${selected ? 'text-[#4a5565]' : 'text-[#99a1af]'}`}
+                className={`self-stretch text-center font-sans text-label-2xs ${selected ? 'font-semibold text-gray-600' : 'font-medium text-gray-300'}`}
               >
                 {item.label}
               </Text>

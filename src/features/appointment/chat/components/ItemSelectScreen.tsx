@@ -48,7 +48,7 @@ export function ItemSelectScreen({ roomId }: { roomId: string }) {
         </ScrollView>
       ) : (
         <View className="flex-1 items-center justify-center">
-          <Text className="font-sans text-label-lg font-medium text-gray-300">
+          <Text className="font-sans text-body-lg font-medium text-gray-300">
             채팅방을 찾을 수 없어요.
           </Text>
         </View>
