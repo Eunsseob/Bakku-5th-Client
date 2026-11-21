@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const font = { fontFamily: 'Pretendard', includeFontPadding: false };
 const locations = ['전체', '홍대', '강남', '성수', '잠실'];
 const writeButtonSize = 56;
+const writeButtonRadius = writeButtonSize / 2;
 const bottomTabBarHeight = 48;
 export default function Home() {
   const insets = useSafeAreaInsets();
@@ -193,6 +194,7 @@ export default function Home() {
             bottom: writeButtonBottom,
             width: writeButtonSize,
             height: writeButtonSize,
+            borderRadius: writeButtonRadius,
             backgroundColor: '#9C43FF',
             alignItems: 'center',
             justifyContent: 'center',
@@ -206,7 +208,7 @@ export default function Home() {
           {({ pressed }) => (
             <>
               <Icon icon={PlusIcon} size="xl" color="#FFFFFF" />
-              <InteractionLayer pressed={pressed} color="#000212D1" />
+              <InteractionLayer pressed={pressed} color="#000212D1" radius={writeButtonRadius} />
             </>
           )}
         </Pressable>
