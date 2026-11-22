@@ -7,7 +7,7 @@ type AuthState = {
 };
 
 export const useAuthStore = create<AuthState>()((set) => ({
-  accessToken: null,
+  accessToken: __DEV__ ? process.env.EXPO_PUBLIC_DEV_ACCESS_TOKEN?.trim() || null : null,
   setAccessToken: (accessToken) => set({ accessToken }),
   clear: () => set({ accessToken: null }),
 }));
