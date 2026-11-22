@@ -5,8 +5,8 @@ export function formatBirthDate(value: string): string {
 
 export function validateNickname(value: string): string | null {
   const nickname = value.trim();
-  if (!nickname) return '닉네임을 입력해 주세요.';
-  if (nickname.length < 2 || nickname.length > 10) return '닉네임은 2~10자로 입력해 주세요.';
+  if (nickname.length < 2) return '닉네임은 2자 이상 입력해주세요.';
+  if (nickname.length > 10) return '닉네임은 10자 이하로 입력해주세요.';
   return null;
 }
 
@@ -27,6 +27,6 @@ export function validateBirthDate(value: string, today = new Date()): string | n
   const birthdayPassed =
     today.getMonth() + 1 > month || (today.getMonth() + 1 === month && today.getDate() >= day);
   const age = today.getFullYear() - year - (birthdayPassed ? 0 : 1);
-  if (age < 14) return '만 14세 이상만 가입할 수 있어요.';
+  if (age < 14) return '만 14세 미만은 사용할 수 없어요';
   return null;
 }

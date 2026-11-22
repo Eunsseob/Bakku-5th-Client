@@ -1,12 +1,14 @@
 import { Button, IconButton } from '@/shared/components';
+import { useQuery } from '@tanstack/react-query';
 import { CaretLeftIcon } from 'phosphor-react-native/src/icons/CaretLeft';
 import { CaretRightIcon } from 'phosphor-react-native/src/icons/CaretRight';
 import { router, Stack, useFocusEffect } from 'expo-router';
+import { openBrowserAsync } from 'expo-web-browser';
 import { useCallback, useState } from 'react';
 import { Alert, BackHandler, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { SIGNUP_TERMS } from '@/constants/auth';
+import { getTerms } from '@/features/auth/api/terms';
 import { useSignupStore } from '@/features/auth/store/useSignupStore';
 import Profile from './profile';
 
@@ -15,7 +17,11 @@ const font = { fontFamily: 'Pretendard', includeFontPadding: false };
 function Checkbox({ checked }: { checked: boolean }) {
   return (
     <View
-      className={`h-5 w-5 items-center justify-center rounded border ${checked ? 'border-[#4A5565] bg-[#4A5565]' : 'border-[#D1D5DC] bg-white'}`}
+      className="h-5 w-5 items-center justify-center rounded border"
+      style={{
+        backgroundColor: checked ? '#9C43FF' : '#FFFFFF',
+        borderColor: checked ? '#9C43FF' : '#D1D5DC',
+      }}
     >
       {checked && (
         <Text style={font} className="text-[14px] leading-[18px] text-white">
@@ -39,11 +45,46 @@ export default function Terms() {
     }, [step]),
   );
   const insets = useSafeAreaInsets();
-  const { agreedTermIds, toggleTerm, setAgreedTermIds } = useSignupStore();
-  const allChecked = SIGNUP_TERMS.every((term) => agreedTermIds.includes(term.id));
-  const canContinue = SIGNUP_TERMS.every(
-    (term) => !term.required || agreedTermIds.includes(term.id),
-  );
+  const { agreedTermIds, toggleTerm, setAgreedTermIds, setAgreements } = useSignupStore();
+  const termsQuery = useQuery({
+    queryKey: ['terms'],
+    queryFn: ({ signal }) => getTerms(signal),
+  });
+  const terms = (termsQuery.data ?? [])
+    .filter((term) => term.signupConsent === 'REQUIRED' || term.signupConsent === 'OPTIONAL')
+    .map((term) => ({
+      ...term,
+      id: `${term.termsType}:${term.version}`,
+      required: term.signupConsent === 'REQUIRED',
+    }));
+  const allChecked = terms.length > 0 && terms.every((term) => agreedTermIds.includes(term.id));
+  const canContinue =
+    terms.length > 0 &&
+    !termsQuery.isFetching &&
+    !termsQuery.isError &&
+    terms.every((term) => !term.required || agreedTermIds.includes(term.id));
+
+  const openTerm = async (url: string | null) => {
+    try {
+      if (!url || !/^https?:\/\//i.test(url) || /[{}]/.test(url))
+        throw new Error('Invalid terms URL');
+      await openBrowserAsync(url);
+    } catch {
+      Alert.alert('약관 본문을 열 수 없어요', '잠시 후 다시 시도해 주세요.');
+    }
+  };
+
+  const continueToProfile = () => {
+    if (!canContinue) return;
+    setAgreements(
+      terms.map(({ termsType, version, id }) => ({
+        termsType,
+        version,
+        agreed: agreedTermIds.includes(id),
+      })),
+    );
+    setStep('profile');
+  };
 
   if (step === 'profile') return <Profile onBack={() => setStep('terms')} />;
 
@@ -93,55 +134,66 @@ export default function Terms() {
           {'서비스 이용을 위해\n약관에 동의해 주세요.'}
         </Text>
         <View className="min-h-8 flex-1" />
-        <View className="w-full">
-          <Pressable
-            accessibilityRole="checkbox"
-            accessibilityLabel="전체 동의"
-            accessibilityState={{ checked: allChecked }}
-            onPress={() => setAgreedTermIds(allChecked ? [] : SIGNUP_TERMS.map((term) => term.id))}
-            className="h-[52px] flex-row items-center gap-3 rounded-xl bg-[#F3F4F6] px-3"
-          >
-            <Checkbox checked={allChecked} />
-            <Text style={font} className="flex-1 text-[16px] leading-[26px] text-[#364153]">
-              약관 전체동의
-            </Text>
-          </Pressable>
-          <View className="mt-3 px-3">
-            {SIGNUP_TERMS.map((term) => (
-              <View key={term.id}>
-                <View className="flex-row items-center">
-                  <Pressable
-                    accessibilityRole="checkbox"
-                    accessibilityState={{ checked: agreedTermIds.includes(term.id) }}
-                    onPress={() => toggleTerm(term.id)}
-                    className="min-h-11 flex-1 flex-row items-center gap-3 py-2"
-                  >
-                    <Checkbox checked={agreedTermIds.includes(term.id)} />
-                    <Text style={font} className="flex-1 text-[16px] leading-[26px] text-[#364153]">
-                      <Text className="text-[#99A1AF]">({term.required ? '필수' : '선택'})</Text>
-                      {` ${term.title}`}
-                    </Text>
-                  </Pressable>
-                  {(term.id === 'service' || term.id === 'privacy' || !term.required) && (
-                    <IconButton
-                      icon={CaretRightIcon}
-                      size="lg"
-                      hierarchy="tertiary"
-                      accessibilityLabel={`${term.title} 내용 보기`}
-                      onPress={() =>
-                        Alert.alert(
-                          term.title,
-                          '화면 확인용 더미 약관입니다. 실제 약관 내용은 준비 중입니다.',
-                        )
-                      }
-                      className="h-11 w-5 items-center justify-center self-center"
-                    />
-                  )}
-                </View>
-              </View>
-            ))}
+        {termsQuery.isPending ? (
+          <Text style={font} accessibilityLiveRegion="polite">
+            약관을 불러오는 중이에요.
+          </Text>
+        ) : termsQuery.isError || terms.length === 0 ? (
+          <View className="gap-2">
+            <Text style={font}>약관 목록을 불러오지 못했어요.</Text>
+            <Button onPress={() => void termsQuery.refetch()}>다시 시도</Button>
           </View>
-        </View>
+        ) : (
+          <View className="w-full">
+            <Pressable
+              accessibilityRole="checkbox"
+              accessibilityLabel="전체 동의"
+              accessibilityState={{ checked: allChecked }}
+              onPress={() => setAgreedTermIds(allChecked ? [] : terms.map((term) => term.id))}
+              className="h-[52px] flex-row items-center gap-3 rounded-xl bg-[#F3F4F6] px-3"
+            >
+              <Checkbox checked={allChecked} />
+              <Text style={font} className="flex-1 text-[16px] leading-[26px] text-[#364153]">
+                약관 전체동의
+              </Text>
+            </Pressable>
+            <View className="mt-3 px-3">
+              {terms.map((term) => (
+                <View key={term.id}>
+                  <View className="flex-row items-center">
+                    <Pressable
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: agreedTermIds.includes(term.id) }}
+                      onPress={() => toggleTerm(term.id)}
+                      className="min-h-11 flex-1 flex-row items-center gap-3 py-2"
+                    >
+                      <Checkbox checked={agreedTermIds.includes(term.id)} />
+                      <Text
+                        style={font}
+                        className="flex-1 text-[16px] leading-[26px] text-[#364153]"
+                      >
+                        <Text style={{ color: term.required ? '#9C43FF' : '#99A1AF' }}>
+                          ({term.required ? '필수' : '선택'})
+                        </Text>
+                        {` ${term.title.replace(/\s*\((필수|선택)\)\s*$/, '')}`}
+                      </Text>
+                    </Pressable>
+                    {term.url && (
+                      <IconButton
+                        icon={CaretRightIcon}
+                        size="lg"
+                        hierarchy="tertiary"
+                        accessibilityLabel={`${term.title} 내용 보기`}
+                        onPress={() => void openTerm(term.url)}
+                        className="h-11 w-5 items-center justify-center self-center"
+                      />
+                    )}
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
       </ScrollView>
       <View className="shrink-0 px-4 pb-2">
         <Button
@@ -149,10 +201,10 @@ export default function Terms() {
           accessibilityRole="button"
           accessibilityState={{ disabled: !canContinue }}
           disabled={!canContinue}
-          onPress={() => setStep('profile')}
+          onPress={continueToProfile}
           className={`w-full self-center !rounded-xl ${canContinue ? '!bg-[#364153]' : '!bg-[#D1D5DC]'}`}
         >
-          동의하고 계속하기
+          계속하기
         </Button>
       </View>
     </View>
