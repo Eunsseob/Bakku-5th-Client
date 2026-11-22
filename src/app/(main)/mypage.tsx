@@ -1,5 +1,5 @@
-import MainScreenPlaceholder from '@/features/home/components/MainScreenPlaceholder';
+import { MyPageScreen } from '@/features/mypage';
 
 export default function MyPageRoute() {
-  return <MainScreenPlaceholder title="마이" />;
+  return <MyPageScreen />;
 }
