@@ -1,11 +1,12 @@
 import { CaretLeftIcon } from 'phosphor-react-native/src/icons/CaretLeft';
-import { Button, Chip, IconButton } from '@/shared/components';
+import { Button, IconButton } from '@/shared/components';
 import { router, Stack } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Keyboard,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   Text,
   TextInput,
@@ -14,6 +15,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GENDER_OPTIONS } from '@/constants/auth';
+import {
+  checkNicknameAvailability,
+  nicknameCheckError,
+  nicknameUnavailableMessage,
+} from '@/features/auth/api/nicknameAvailability';
 import { useSignupStore } from '@/features/auth/store/useSignupStore';
 import {
   formatBirthDate,
@@ -22,15 +28,69 @@ import {
 } from '@/features/auth/utils/profileValidation';
 
 const font = { fontFamily: 'Pretendard', includeFontPadding: false };
+const inputStyle = { ...font, lineHeight: 26, paddingVertical: 0, borderWidth: 2 };
+
+function inputColors(focused: boolean, invalid: boolean) {
+  if (focused) return { borderColor: '#000419AA', backgroundColor: '#FFFFFF' };
+  if (invalid) return { borderColor: '#EC0042', backgroundColor: '#FFF1EF' };
+  return { borderColor: '#D1D5DC', backgroundColor: '#FFFFFF' };
+}
+
 type ProfileProps = { onBack?: () => void };
+type NicknameCheck = { nickname: string } & (
+  { status: 'available' } | { status: 'unavailable' | 'failed'; message: string }
+);
 
 export default function Profile({ onBack }: ProfileProps) {
   const insets = useSafeAreaInsets();
+  const headerHeight = Math.max(34, 78 - insets.top);
   const { profile, setProfile } = useSignupStore();
   const [touched, setTouched] = useState({ nickname: false, birthDate: false });
-  const nicknameError = validateNickname(profile.nickname);
+  const [focused, setFocused] = useState<'nickname' | 'birthDate' | null>(null);
+  const [nicknameCheck, setNicknameCheck] = useState<NicknameCheck | null>(null);
+  const [nicknameRetry, setNicknameRetry] = useState(0);
+  const nickname = profile.nickname.trim();
+  const nicknameFormatError = validateNickname(nickname);
+  const currentCheck = nicknameCheck?.nickname === nickname ? nicknameCheck : null;
+  const nicknameError =
+    nicknameFormatError ?? (currentCheck?.status === 'unavailable' ? currentCheck.message : null);
   const birthDateError = validateBirthDate(profile.birthDate);
-  const canContinue = !nicknameError && !birthDateError;
+  const canContinue = !nicknameError && !birthDateError && currentCheck?.status === 'available';
+  const showNicknameError =
+    focused !== 'nickname' &&
+    !!nicknameError &&
+    (touched.nickname || currentCheck?.status === 'unavailable');
+  const showBirthDateError = focused !== 'birthDate' && touched.birthDate && !!birthDateError;
+
+  useEffect(() => {
+    if (nicknameFormatError) return;
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const result = await checkNicknameAvailability(nickname, controller.signal);
+        if (controller.signal.aborted) return;
+        setNicknameCheck(
+          result.available
+            ? { nickname, status: 'available' }
+            : {
+                nickname,
+                status: 'unavailable',
+                message: nicknameUnavailableMessage(result.reason),
+              },
+        );
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setNicknameCheck({ nickname, status: 'failed', message: nicknameCheckError(error) });
+        }
+      }
+    }, 500);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [nickname, nicknameFormatError, nicknameRetry]);
 
   return (
     <KeyboardAvoidingView
@@ -44,10 +104,7 @@ export default function Profile({ onBack }: ProfileProps) {
       }}
     >
       <Stack.Screen options={{ headerShown: false }} />
-      <View
-        className="items-center justify-center"
-        style={{ height: Math.max(34, 78 - insets.top) }}
-      >
+      <View className="items-center justify-center" style={{ height: headerHeight }}>
         <Text
           style={font}
           className="text-center text-[16px] leading-[22px] tracking-[-0.16px] text-[#030712]"
@@ -69,13 +126,20 @@ export default function Profile({ onBack }: ProfileProps) {
       <ScrollView
         className="flex-1"
         style={{ minHeight: 0 }}
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 40, paddingBottom: 24 }}
+        contentContainerStyle={{
+          paddingHorizontal: 16,
+          paddingTop: Math.max(0, 132 - insets.top - headerHeight),
+          paddingBottom: 24,
+        }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         <View className="w-full">
-          <Text style={font} className="text-[24px] leading-8 tracking-[-0.48px] text-[#364153]">
-            {'바꾸에서 사용할\n프로필을 등록해주세요'}
+          <Text
+            style={font}
+            className="text-[28px] leading-[36px] tracking-[-0.56px] text-[#2E303D]"
+          >
+            어떻게 불러드릴까요?
           </Text>
           <View className="mt-4">
             <Text style={font} className="text-[14px] leading-5 tracking-[-0.14px] text-[#030712]">
@@ -86,22 +150,56 @@ export default function Profile({ onBack }: ProfileProps) {
               placeholder="사용하실 닉네임을 입력하세요"
               placeholderTextColor="#99A1AF"
               value={profile.nickname}
-              maxLength={10}
-              onChangeText={(nickname) => setProfile({ ...profile, nickname })}
-              onBlur={() => setTouched((value) => ({ ...value, nickname: true }))}
+              onChangeText={(value) => {
+                if (value.trim() !== nickname) setNicknameCheck(null);
+                setProfile({ ...profile, nickname: value });
+              }}
+              onFocus={() => setFocused('nickname')}
+              onBlur={() => {
+                setFocused((field) => (field === 'nickname' ? null : field));
+                setTouched((value) => ({ ...value, nickname: true }));
+              }}
               autoCapitalize="none"
               autoCorrect={false}
               returnKeyType="done"
-              style={{ ...font, lineHeight: 26, paddingVertical: 0 }}
-              className="mt-3 h-[52px] rounded-lg border border-[#D1D5DC] px-3.5 text-[16px] text-[#364153]"
+              style={[inputStyle, inputColors(focused === 'nickname', showNicknameError)]}
+              className="mt-3 h-[50px] rounded-lg px-3.5 text-[16px] text-[#364153]"
             />
-            {touched.nickname && nicknameError && (
+            {showNicknameError && (
               <Text
                 accessibilityLiveRegion="polite"
                 style={font}
-                className={`mt-[6px] text-[11px] leading-[15px] ${touched.nickname && nicknameError ? 'text-red-600' : 'text-[#737380]'}`}
+                className="mt-[6px] text-[11px] leading-[15px] text-[#EC0042]"
               >
                 {nicknameError}
+              </Text>
+            )}
+            {currentCheck?.status === 'failed' && (
+              <Text
+                accessibilityRole="button"
+                accessibilityLiveRegion="polite"
+                onPress={() => {
+                  setNicknameCheck(null);
+                  setNicknameRetry((attempt) => attempt + 1);
+                }}
+                style={font}
+                className="mt-[6px] text-[12px] leading-5 text-[#EC0042]"
+              >
+                {currentCheck.message} 다시 확인
+              </Text>
+            )}
+            {!nicknameFormatError && !currentCheck && (
+              <Text style={font} className="mt-[6px] text-[12px] leading-5 text-[#737380]">
+                닉네임 확인 중…
+              </Text>
+            )}
+            {currentCheck?.status === 'available' && (
+              <Text
+                accessibilityLiveRegion="polite"
+                style={font}
+                className="mt-[6px] text-[12px] leading-5 text-[#08763C]"
+              >
+                사용할 수 있는 닉네임이에요
               </Text>
             )}
           </View>
@@ -119,52 +217,62 @@ export default function Profile({ onBack }: ProfileProps) {
               onChangeText={(value) =>
                 setProfile({ ...profile, birthDate: formatBirthDate(value) })
               }
-              onBlur={() => setTouched((value) => ({ ...value, birthDate: true }))}
+              onFocus={() => setFocused('birthDate')}
+              onBlur={() => {
+                setFocused((field) => (field === 'birthDate' ? null : field));
+                setTouched((value) => ({ ...value, birthDate: true }));
+              }}
               returnKeyType="done"
-              style={{ ...font, lineHeight: 26, paddingVertical: 0 }}
-              className="mt-3 h-[52px] rounded-lg border border-[#D1D5DC] px-3.5 text-[16px] text-[#364153]"
+              style={[inputStyle, inputColors(focused === 'birthDate', showBirthDateError)]}
+              className="mt-3 h-[50px] rounded-lg px-3.5 text-[16px] text-[#364153]"
             />
-            {(touched.birthDate || profile.birthDate.replace(/\D/g, '').length === 8) &&
-              birthDateError && (
-                <Text
-                  accessibilityLiveRegion="polite"
-                  style={font}
-                  className={`mt-[6px] text-[11px] leading-[15px] ${(touched.birthDate || profile.birthDate.replace(/\D/g, '').length === 8) && birthDateError ? 'text-red-600' : 'text-[#737380]'}`}
-                >
-                  {birthDateError}
-                </Text>
-              )}
+            {showBirthDateError && (
+              <Text
+                accessibilityLiveRegion="polite"
+                style={font}
+                className="mt-[6px] text-[11px] leading-[15px] text-[#EC0042]"
+              >
+                {birthDateError}
+              </Text>
+            )}
           </View>
           <View className="mt-8">
-            <Text style={font} className="text-[14px] leading-5 tracking-[-0.14px] text-[#030712]">
-              성별
+            <Text style={font} className="text-[14px] leading-5 tracking-[-0.14px] text-[#1A1B27]">
+              성별 <Text style={{ color: '#000A3161' }}>(선택)</Text>
             </Text>
-            <View className="mt-3 flex-row gap-2">
+            <View className="mt-3 flex-row flex-wrap gap-2" accessibilityRole="radiogroup">
               {GENDER_OPTIONS.map((option) => {
                 const selected = profile.gender === option.value;
                 return (
-                  <Chip
+                  <Pressable
                     key={option.value ?? 'none'}
-                    hierarchy={selected ? 'primary' : 'secondary'}
-                    variant={selected ? 'solid' : 'outlined'}
-                    size="md"
-                    className="justify-center"
                     style={{
-                      width: option.value === null ? undefined : 53,
-                      height: 38,
-                      paddingHorizontal: option.value === null ? 14 : 0,
-                      borderColor: selected ? '#364153' : '#D1D5DC',
+                      minWidth: 53,
+                      minHeight: 36,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      paddingHorizontal: 12,
+                      paddingVertical: 4,
+                      borderWidth: 1,
+                      borderRadius: 8,
+                      borderColor: selected ? '#364153' : '#000D4B25',
                       backgroundColor: selected ? '#364153' : '#FFFFFF',
                     }}
                     accessibilityRole="radio"
+                    accessibilityLabel={option.label}
                     accessibilityState={{ checked: selected }}
                     onPress={() =>
                       setProfile({ ...profile, gender: selected ? undefined : option.value })
                     }
                     hitSlop={{ top: 5, bottom: 5 }}
                   >
-                    {option.label}
-                  </Chip>
+                    <Text
+                      style={{ ...font, color: selected ? '#FFFFFF' : '#464855' }}
+                      className="text-center text-[14px] leading-5 tracking-[-0.14px]"
+                    >
+                      {option.label}
+                    </Text>
+                  </Pressable>
                 );
               })}
             </View>

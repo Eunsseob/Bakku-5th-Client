@@ -11,15 +11,7 @@ export const MOCK_PROFILE = {
 export const GENDER_OPTIONS = [
   { value: 'female', label: '여성' },
   { value: 'male', label: '남성' },
-  { value: null, label: '선택 안 함' },
 ] as const;
-
-export const SIGNUP_TERMS = [
-  { id: 'age', title: '만 14세 이상입니다', required: true },
-  { id: 'service', title: '서비스 이용약관', required: true },
-  { id: 'privacy', title: '개인정보 수집 · 이용', required: true },
-  { id: 'marketing', title: '이벤트 · 혜택 알림', required: false },
-];
 
 export const MOCK_WISHLIST = [
   { id: '1', name: '캐릭터 키링' },

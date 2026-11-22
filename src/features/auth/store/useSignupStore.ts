@@ -1,15 +1,20 @@
 import { create } from 'zustand';
 
 import { MOCK_PROFILE } from '@/constants/auth';
+import type { Agreement } from '@/features/auth/api/terms';
 
 type SignupState = {
   profile: typeof MOCK_PROFILE;
   agreedTermIds: string[];
+  agreements: Agreement[];
   keywords: string[];
   notificationsEnabled: boolean;
+  signupSession: { signupToken: string; deviceId: string } | null;
+  setSignupSession: (session: SignupState['signupSession']) => void;
   setProfile: (profile: typeof MOCK_PROFILE) => void;
   toggleTerm: (id: string) => void;
   setAgreedTermIds: (ids: string[]) => void;
+  setAgreements: (agreements: Agreement[]) => void;
   addKeyword: (value: string) => string | null;
   removeKeyword: (value: string) => void;
   setNotificationsEnabled: (enabled: boolean) => void;
@@ -19,13 +24,16 @@ type SignupState = {
 const initialState = () => ({
   profile: { ...MOCK_PROFILE },
   agreedTermIds: [] as string[],
+  agreements: [] as Agreement[],
   keywords: [] as string[],
   notificationsEnabled: false,
+  signupSession: null,
 });
 
 // 가입 단계 사이의 임시 입력값입니다. 앱을 재시작하면 초기화됩니다.
 export const useSignupStore = create<SignupState>()((set, get) => ({
   ...initialState(),
+  setSignupSession: (signupSession) => set({ signupSession }),
   setProfile: (profile) => set({ profile }),
   toggleTerm: (id) =>
     set((state) => ({
@@ -34,6 +42,7 @@ export const useSignupStore = create<SignupState>()((set, get) => ({
         : [...state.agreedTermIds, id],
     })),
   setAgreedTermIds: (agreedTermIds) => set({ agreedTermIds }),
+  setAgreements: (agreements) => set({ agreements }),
   addKeyword: (value) => {
     const keyword = value.trim().replace(/\s+/g, ' ');
     const { keywords } = get();

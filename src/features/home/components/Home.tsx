@@ -1,5 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { Icon } from '@/shared/components';
+import { InteractionLayer } from '@/shared/components/decoration/InteractionLayer';
 import { PlusIcon } from 'phosphor-react-native/src/icons/Plus';
 import HomeHeader, { type MenuAnchor } from './HomeHeader';
 import ExchangePostCard from './ExchangePostCard';
@@ -20,8 +21,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const font = { fontFamily: 'Pretendard', includeFontPadding: false };
 const locations = ['전체', '홍대', '강남', '성수', '잠실'];
+const writeButtonSize = 56;
+const writeButtonRadius = writeButtonSize / 2;
+const bottomTabBarHeight = 48;
 export default function Home() {
   const insets = useSafeAreaInsets();
+  // The tab bar and its safe-area padding sit below the home screen.
+  const writeButtonBottom = Math.max(16, 106 - bottomTabBarHeight - insets.bottom);
   const screen = useRef<ComponentRef<typeof View>>(null);
   const sortButton = useRef<ComponentRef<typeof View>>(null);
   const [category, setCategory] = useState('전체');
@@ -155,7 +161,11 @@ export default function Home() {
               colors={['#2E2E33']}
             />
           }
-          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 100 }}
+          contentContainerStyle={{
+            paddingHorizontal: 16,
+            paddingTop: 8,
+            paddingBottom: writeButtonBottom + writeButtonSize + 16,
+          }}
         >
           {visiblePosts.length ? (
             visiblePosts.map((post) => (
@@ -180,33 +190,27 @@ export default function Home() {
           onPress={() => router.push('/(main)/(post-create)/write')}
           style={{
             position: 'absolute',
-            right: 20,
-            bottom: 24,
-            width: 94,
-            height: 48,
-            borderRadius: 24,
-            backgroundColor: '#364153',
-            flexDirection: 'row',
+            right: 16,
+            bottom: writeButtonBottom,
+            width: writeButtonSize,
+            height: writeButtonSize,
+            borderRadius: writeButtonRadius,
+            backgroundColor: '#9C43FF',
             alignItems: 'center',
             justifyContent: 'center',
-            paddingHorizontal: 16,
-            paddingVertical: 13,
-            gap: 4,
+            elevation: 4,
+            shadowColor: '#000000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 4,
           }}
         >
-          <Icon icon={PlusIcon} size="md" color="#FFFFFF" />
-          <Text
-            numberOfLines={1}
-            style={{
-              ...font,
-              fontSize: 16,
-              lineHeight: 22,
-              letterSpacing: -0.16,
-              color: '#FFFFFF',
-            }}
-          >
-            글쓰기
-          </Text>
+          {({ pressed }) => (
+            <>
+              <Icon icon={PlusIcon} size="xl" color="#FFFFFF" />
+              <InteractionLayer pressed={pressed} color="#000212D1" radius={writeButtonRadius} />
+            </>
+          )}
         </Pressable>
       </View>
       {publishedPostId !== null && (

@@ -1,15 +1,37 @@
 ﻿import { useRouter } from 'expo-router';
 import { Alert } from 'react-native';
 
+import { useAuthStore } from '@/shared/api/useAuthStore';
+import { socialLogin } from '../api/socialLogin';
+import { useSignupStore } from '../store/useSignupStore';
+import { enterMainAfterAuth } from '../utils/enterMainAfterAuth';
 import LoginLayout from './LoginLayout';
 
 export default function Login() {
   const router = useRouter();
+  const authenticate = async (provider: 'kakao' | 'naver', token: string) => {
+    const { signupToken, accessToken, deviceId } = await socialLogin(provider, token);
+    const signup = useSignupStore.getState();
+    if (signupToken) {
+      signup.reset();
+      signup.setSignupSession({ signupToken, deviceId });
+      useAuthStore.getState().clear();
+      router.push('/(auth)/terms');
+      return;
+    }
+    if (accessToken) {
+      signup.reset();
+      useAuthStore.getState().setAccessToken(accessToken);
+      enterMainAfterAuth();
+      return;
+    }
+    throw new Error('서버에서 로그인 정보를 받지 못했습니다.');
+  };
   const handleKakaoLogin = async () => {
     try {
       const { login } = await import('@react-native-seoul/kakao-login');
-      await login();
-      router.push('/(auth)/terms');
+      const { accessToken } = await login();
+      await authenticate('kakao', accessToken);
     } catch (error: unknown) {
       Alert.alert(
         '카카오 로그인 실패',
@@ -38,7 +60,7 @@ export default function Login() {
       });
       const { successResponse, failureResponse } = await NaverLogin.login();
       if (successResponse?.accessToken) {
-        router.push('/(auth)/terms');
+        await authenticate('naver', successResponse.accessToken);
         return;
       }
       if (failureResponse?.isCancel) return;
