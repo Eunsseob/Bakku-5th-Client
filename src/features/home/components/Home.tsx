@@ -1,4 +1,7 @@
 import { router, useFocusEffect } from 'expo-router';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { useAuthStore } from '@/shared/api/useAuthStore';
+import { getHomePosts, homePostsKey } from '../api/homePosts';
 import { Icon } from '@/shared/components';
 import { InteractionLayer } from '@/shared/components/decoration/InteractionLayer';
 import { PlusIcon } from 'phosphor-react-native/src/icons/Plus';
@@ -9,18 +12,23 @@ import { type ComponentRef, useCallback, useEffect, useRef, useState } from 'rea
 import {
   Alert,
   BackHandler,
-  Modal,
+  ActivityIndicator,
+  FlatList,
   Pressable,
   RefreshControl,
-  ScrollView,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const font = { fontFamily: 'Pretendard', includeFontPadding: false };
 const locations = ['전체', '홍대', '강남', '성수', '잠실'];
+const categories = new Map<string, 'CHARACTER' | 'IDOL' | 'SPORTS' | 'ETC'>([
+  ['캐릭터', 'CHARACTER'],
+  ['아이돌', 'IDOL'],
+  ['스포츠', 'SPORTS'],
+  ['기타', 'ETC'],
+]);
 const writeButtonSize = 56;
 const writeButtonRadius = writeButtonSize / 2;
 const bottomTabBarHeight = 48;
@@ -29,14 +37,43 @@ export default function Home() {
   // The tab bar and its safe-area padding sit below the home screen.
   const writeButtonBottom = Math.max(16, 106 - bottomTabBarHeight - insets.bottom);
   const screen = useRef<ComponentRef<typeof View>>(null);
-  const sortButton = useRef<ComponentRef<typeof View>>(null);
   const [category, setCategory] = useState('전체');
   const [location, setLocation] = useState('전체');
   const [searchVisible, setSearchVisible] = useState(false);
   const [query, setQuery] = useState('');
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const [mode, setMode] = useState('\uBAA8\uB4E0 \uAD50\uD658\uAE00');
-  const [sort, setSort] = useState('최신순');
-  const { posts, setPosts, publishedPostId, dismissPublishedToast } = useExchangeStore();
+  const publishedPostId = useExchangeStore((state) => state.publishedPostId);
+  const dismissPublishedToast = useExchangeStore((state) => state.dismissPublishedToast);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const sessionId = useAuthStore((state) => state.sessionId);
+  const keyword = searchVisible ? query.replace(/\s/g, '').replace(/^#+/, '').toLowerCase() : '';
+  const isSearching = searchVisible && Boolean(query.trim());
+  const keywordLength = [...keyword].length;
+  const invalidKeyword = isSearching && (keywordLength < 2 || keywordLength > 30);
+  const waitingForKeyword = isSearching && keyword !== debouncedKeyword;
+  useEffect(() => {
+    if (!isSearching || invalidKeyword) return;
+    const timer = setTimeout(() => setDebouncedKeyword(keyword), 300);
+    return () => clearTimeout(timer);
+  }, [isSearching, invalidKeyword, keyword]);
+
+  const filters = {
+    category: categories.get(category),
+    nowExchange: isSearching || mode === '모든 교환글' ? undefined : mode === '지금 교환',
+    keyword: isSearching ? keyword : undefined,
+  };
+  const canFetch = Boolean(accessToken) && !invalidKeyword && !waitingForKeyword;
+  const posts = useInfiniteQuery({
+    queryKey: [...homePostsKey, sessionId, filters],
+    queryFn: ({ pageParam, signal }) => getHomePosts(filters, pageParam, signal),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (page, _pages, _cursor, cursors) =>
+      page.hasNext && page.nextCursor && !cursors.includes(page.nextCursor)
+        ? page.nextCursor
+        : undefined,
+    enabled: canFetch,
+  });
   useFocusEffect(
     useCallback(() => {
       if (publishedPostId === null) return;
@@ -44,18 +81,8 @@ export default function Home() {
       return () => clearTimeout(timer);
     }, [publishedPostId, dismissPublishedToast]),
   );
-  const [refreshing, setRefreshing] = useState(false);
-  useEffect(() => {
-    if (!refreshing) return;
-    // API 연결 전에는 더미 목록을 다시 불러오는 동작을 재현한다.
-    const timer = setTimeout(() => {
-      // Keep local posts until the API is connected.
-      setRefreshing(false);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [refreshing]);
   const [dropdown, setDropdown] = useState<{
-    kind: 'location' | 'sort' | 'mode';
+    kind: 'location' | 'mode';
     x: number;
     y: number;
     width: number;
@@ -70,15 +97,10 @@ export default function Home() {
       return () => subscription.remove();
     }, [dropdown]),
   );
-  const [menuId, setMenuId] = useState<number | null>(null);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [title, setTitle] = useState('');
-  const [wanted, setWanted] = useState('');
-  const openDropdown = (kind: 'location' | 'mode' | 'sort', anchor: MenuAnchor) => {
+  const openDropdown = (kind: 'location' | 'mode', anchor: MenuAnchor) => {
     screen.current?.measureInWindow((screenX, screenY, screenWidth, screenHeight) => {
-      const width = kind === 'sort' ? 120 : 160;
-      const menuHeight =
-        (kind === 'location' ? locations.length : kind === 'mode' ? 3 : 2) * 44 + 2;
+      const width = 160;
+      const menuHeight = (kind === 'location' ? locations.length : 3) * 44 + 2;
       const x = Math.max(8, Math.min(anchor.x - screenX, screenWidth - width - 8));
       const below = anchor.y + anchor.height - screenY + 4;
       const y =
@@ -88,21 +110,17 @@ export default function Home() {
       setDropdown({ kind, x, y, width });
     });
   };
-  const visiblePosts = posts
-    .filter(
-      (post) =>
-        (category === '전체' ||
-          category === post.category ||
-          (category === '캐릭터' && post.category === '애니메이션') ||
-          (category === '아이돌' && post.category === '아이돌(케이팝)')) &&
-        (mode === '모든 교환글' ||
-          (mode === '지금 교환' ? post.onsite !== false : post.onsite === false)) &&
-        (location === '전체' ||
-          post.location.includes(location) ||
-          !!post.locationDetail?.includes(location)) &&
-        `${post.title} ${post.wanted}`.includes(query.trim()),
-    )
-    .sort((a, b) => (sort === '최신순' ? a.minutes - b.minutes : a.distance - b.distance));
+  const uniquePosts = new Map(
+    posts.data?.pages.flatMap((page) => page.content.map((post) => [post.id, post] as const)),
+  );
+  const visiblePosts = [...uniquePosts.values()].filter(
+    (post) =>
+      !invalidKeyword && (isSearching || location === '전체' || post.regionName.includes(location)),
+  );
+  const loadMore = () => {
+    if (canFetch && posts.hasNextPage && !posts.isFetching)
+      void posts.fetchNextPage({ cancelRefetch: false });
+  };
 
   return (
     <View
@@ -121,69 +139,100 @@ export default function Home() {
         mode={mode}
         query={query}
         searchVisible={searchVisible}
+        searching={isSearching}
         modeExpanded={dropdown?.kind === 'mode'}
         onRegionPress={(anchor) => openDropdown('location', anchor)}
         onModePress={(anchor) => openDropdown('mode', anchor)}
-        onSearchPress={() => setSearchVisible(!searchVisible)}
+        onSearchPress={() => {
+          setDropdown(null);
+          setSearchVisible(!searchVisible);
+          if (searchVisible) {
+            setQuery('');
+            setDebouncedKeyword('');
+          }
+        }}
         onNotificationsPress={() => Alert.alert('알림', '새로운 알림이 없어요.')}
         onQueryChange={setQuery}
         onCategoryChange={setCategory}
       />
       <View className="flex-1">
         <View className="h-11 flex-row items-center justify-end px-4">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`정렬 ${sort}, 변경`}
-            ref={sortButton}
-            accessibilityState={{ expanded: dropdown?.kind === 'sort' }}
-            onPress={() =>
-              sortButton.current?.measureInWindow((x, y, width, height) => {
-                openDropdown('sort', { x: x + width - 120, y, width, height });
-              })
-            }
-            className="min-h-11 justify-center pl-4"
-          >
-            <Text style={font} className="text-[13px] leading-[18px] text-[#2E2E33]">
-              {sort} ▾
-            </Text>
-          </Pressable>
+          <Text style={font} className="text-[13px] leading-[18px] text-[#2E2E33]">
+            {isSearching ? '관련도순' : '최신순'}
+          </Text>
         </View>
-        <ScrollView
+        <FlatList
+          key={JSON.stringify(filters)}
+          data={visiblePosts}
+          keyboardShouldPersistTaps="handled"
+          keyExtractor={(post) => String(post.id)}
+          renderItem={({ item }) => (
+            <ExchangePostCard
+              post={item}
+              accessToken={accessToken}
+              onPress={() =>
+                router.push({ pathname: '/post/[id]', params: { id: String(item.id) } })
+              }
+            />
+          )}
+          onEndReached={() => {
+            if (visiblePosts.length && !posts.isFetchNextPageError) loadMore();
+          }}
+          onEndReachedThreshold={0.5}
           alwaysBounceVertical
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => {
-                setDropdown(null);
-                setRefreshing(true);
-              }}
-              tintColor="#2E2E33"
-              colors={['#2E2E33']}
-            />
+            canFetch ? (
+              <RefreshControl
+                refreshing={posts.isRefetching && !posts.isFetchingNextPage}
+                onRefresh={() => {
+                  setDropdown(null);
+                  void posts.refetch();
+                }}
+                tintColor="#2E2E33"
+                colors={['#2E2E33']}
+              />
+            ) : undefined
           }
           contentContainerStyle={{
             paddingHorizontal: 16,
             paddingTop: 8,
             paddingBottom: writeButtonBottom + writeButtonSize + 16,
           }}
-        >
-          {visiblePosts.length ? (
-            visiblePosts.map((post) => (
-              <ExchangePostCard
-                key={post.id}
-                post={post}
-                onPress={() =>
-                  router.push({ pathname: '/post/[id]', params: { id: String(post.id) } })
-                }
-                onMore={() => setMenuId(post.id)}
-              />
-            ))
-          ) : (
-            <Text style={font} className="py-12 text-center text-[14px] text-[#737380]">
-              조건에 맞는 교환 글이 없어요.
-            </Text>
-          )}
-        </ScrollView>
+          ListEmptyComponent={
+            invalidKeyword ? (
+              <Text style={font} className="py-12 text-center text-[14px] text-[#737380]">
+                검색어를 2~30자로 입력해 주세요. 공백과 앞의 #은 제외돼요.
+              </Text>
+            ) : waitingForKeyword || posts.isLoading ? (
+              <ActivityIndicator className="py-12" />
+            ) : posts.isError && !posts.data ? (
+              <Pressable accessibilityRole="button" onPress={() => void posts.refetch()}>
+                <Text style={font} className="py-12 text-center text-[14px] text-[#737380]">
+                  교환 글을 불러오지 못했어요. 다시 시도
+                </Text>
+              </Pressable>
+            ) : (
+              <Text style={font} className="py-12 text-center text-[14px] text-[#737380]">
+                {posts.hasNextPage
+                  ? '불러온 글 중 조건에 맞는 글이 없어요.'
+                  : isSearching
+                    ? '검색 결과가 없어요.'
+                    : '조건에 맞는 교환 글이 없어요.'}
+              </Text>
+            )
+          }
+          ListFooterComponent={
+            !canFetch ? undefined : posts.isFetchingNextPage ? (
+              <ActivityIndicator className="py-4" />
+            ) : posts.hasNextPage && (!visiblePosts.length || posts.isFetchNextPageError) ? (
+              <Pressable accessibilityRole="button" onPress={loadMore}>
+                <Text style={font} className="py-4 text-center text-[14px] text-[#737380]">
+                  {posts.isFetchNextPageError ? '다음 목록 다시 불러오기' : '다음 목록 보기'}
+                </Text>
+              </Pressable>
+            ) : undefined
+          }
+        />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="교환 글쓰기"
@@ -258,17 +307,9 @@ export default function Home() {
             >
               {(dropdown.kind === 'location'
                 ? locations
-                : dropdown.kind === 'mode'
-                  ? ['모든 교환글', '지금 교환', '일반 교환']
-                  : ['최신순', '가까운순']
+                : ['모든 교환글', '지금 교환', '일반 교환']
               ).map((item) => {
-                const selected =
-                  item ===
-                  (dropdown.kind === 'location'
-                    ? location
-                    : dropdown.kind === 'mode'
-                      ? mode
-                      : sort);
+                const selected = item === (dropdown.kind === 'location' ? location : mode);
                 return (
                   <Pressable
                     key={item}
@@ -276,8 +317,7 @@ export default function Home() {
                     accessibilityState={{ selected }}
                     onPress={() => {
                       if (dropdown.kind === 'location') setLocation(item);
-                      else if (dropdown.kind === 'mode') setMode(item);
-                      else setSort(item);
+                      else setMode(item);
                       setDropdown(null);
                     }}
                     className={`min-h-11 flex-row items-center justify-between px-3 ${selected ? 'bg-gray-50' : 'bg-white'}`}
@@ -297,107 +337,6 @@ export default function Home() {
           )}
         </View>
       )}
-      <Modal
-        visible={menuId !== null || editingId !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => {
-          setMenuId(null);
-          setEditingId(null);
-        }}
-      >
-        <View className="flex-1 justify-end bg-black/30">
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="닫기"
-            className="absolute inset-0"
-            onPress={() => {
-              setMenuId(null);
-              setEditingId(null);
-            }}
-          />
-          <View
-            accessibilityViewIsModal
-            className="rounded-t-2xl bg-white px-6 pt-5"
-            style={{ paddingBottom: Math.max(insets.bottom, 20) }}
-          >
-            {editingId !== null ? (
-              <>
-                <Text style={font} className="mb-4 text-[18px] text-[#2E2E33]">
-                  게시글 수정
-                </Text>
-                <TextInput
-                  accessibilityLabel="게시글 제목"
-                  value={title}
-                  onChangeText={setTitle}
-                  maxLength={80}
-                  style={font}
-                  className="mb-3 h-12 rounded-lg border border-[#BFBFC7] px-3 text-[15px]"
-                />
-                <TextInput
-                  accessibilityLabel="원하는 굿즈"
-                  value={wanted}
-                  onChangeText={setWanted}
-                  maxLength={80}
-                  style={font}
-                  className="mb-4 h-12 rounded-lg border border-[#BFBFC7] px-3 text-[15px]"
-                />
-                <Pressable
-                  accessibilityRole="button"
-                  disabled={!title.trim() || !wanted.trim()}
-                  onPress={() => {
-                    setPosts(
-                      posts.map((post) =>
-                        post.id === editingId
-                          ? { ...post, title: title.trim(), wanted: wanted.trim() }
-                          : post,
-                      ),
-                    );
-                    setEditingId(null);
-                  }}
-                  className="h-12 items-center justify-center rounded-lg bg-[#2E2E33] disabled:opacity-40"
-                >
-                  <Text style={font} className="text-[15px] text-white">
-                    저장
-                  </Text>
-                </Pressable>
-              </>
-            ) : (
-              <>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => {
-                    const post = posts.find((item) => item.id === menuId);
-                    if (post) {
-                      setTitle(post.title);
-                      setWanted(post.wanted);
-                      setEditingId(post.id);
-                    }
-                    setMenuId(null);
-                  }}
-                  className="min-h-12 justify-center"
-                >
-                  <Text style={font} className="text-[15px] text-[#2E2E33]">
-                    수정
-                  </Text>
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => {
-                    setPosts(posts.filter((post) => post.id !== menuId));
-                    setMenuId(null);
-                  }}
-                  className="min-h-12 justify-center"
-                >
-                  <Text style={font} className="text-[15px] text-red-600">
-                    삭제
-                  </Text>
-                </Pressable>
-              </>
-            )}
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }

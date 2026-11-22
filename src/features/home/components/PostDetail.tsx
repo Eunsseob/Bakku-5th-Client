@@ -1,18 +1,43 @@
-import { useSignupStore } from '@/features/auth/store/useSignupStore';
+import { postCategories } from '@/features/post-create/api/createPost';
+import { useAuthStore } from '@/shared/api/useAuthStore';
 import { Button, Icon, IconButton, Thumbnail, TopNavigation } from '@/shared/components';
+import { InteractionLayer } from '@/shared/components/decoration/InteractionLayer';
+import { type InfiniteData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { CaretLeftIcon } from 'phosphor-react-native/src/icons/CaretLeft';
 import { CaretRightIcon } from 'phosphor-react-native/src/icons/CaretRight';
 import { DotsThreeVerticalIcon } from 'phosphor-react-native/src/icons/DotsThreeVertical';
 import { MapPinIcon } from 'phosphor-react-native/src/icons/MapPin';
-import { useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { PencilSimpleIcon } from 'phosphor-react-native/src/icons/PencilSimple';
+import { TrashIcon } from 'phosphor-react-native/src/icons/Trash';
+import { useEffect, useId, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Modal,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
+import {
+  deletePost,
+  getPostDetail,
+  postDeleteError,
+  postDeleteLockedMessage,
+  postDetailError,
+  postEditLockedMessage,
+  postImageSource,
+} from '../api/postDetail';
+import { homePostsKey, type HomePostsPage } from '../api/homePosts';
 import { useExchangeStore } from '../store/useExchangeStore';
 import MapCanvas from './MapCanvas';
+import PostPhotoViewer from './PostPhotoViewer';
 
 function DetailDivider() {
   return (
@@ -105,40 +130,208 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 export default function PostDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const post = useExchangeStore((state) => state.posts.find((item) => String(item.id) === id));
-  const nickname = useSignupStore((state) => state.profile.nickname);
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const sessionId = useAuthStore((state) => state.sessionId);
+  const queryInstance = useId();
+  const queryClient = useQueryClient();
+  const detailKey = ['post-detail', id, queryInstance, sessionId] as const;
+  const validId = typeof id === 'string' && /^[1-9]\d*$/.test(id);
+  const detail = useQuery({
+    queryKey: detailKey,
+    queryFn: ({ signal }) => getPostDetail(id, signal),
+    enabled: validId && !!accessToken,
+    retry: false,
+  });
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const photoWidth = width - insets.left - insets.right;
   const [mapOpen, setMapOpen] = useState(false);
+  const [postMenuOpen, setPostMenuOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const deleteInProgress = useRef(false);
   const [photoIndex, setPhotoIndex] = useState(0);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    if (!detail.data?.nowExchangeEndsAt) return;
+    const timer = setInterval(() => setNow(Date.now()), 15_000);
+    return () => clearInterval(timer);
+  }, [detail.data?.nowExchangeEndsAt]);
   const goBack = () => {
     if (router.canGoBack()) router.back();
     else router.replace('/(main)/home');
   };
 
-  if (!post)
+  if (!accessToken || !validId || !detail.data)
     return (
       <View
         className="flex-1 items-center justify-center gap-6 bg-white px-4"
         style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
       >
         <Stack.Screen options={{ headerShown: false }} />
-        <Text className="font-sans text-[16px] text-[#364153]">게시글을 찾을 수 없어요.</Text>
+        {accessToken && validId && detail.isPending ? (
+          <ActivityIndicator accessibilityLabel="게시글 불러오는 중" />
+        ) : (
+          <Text className="font-sans text-[16px] text-[#364153]">
+            {!validId
+              ? '게시글을 찾을 수 없어요.'
+              : !accessToken
+                ? '게시글을 보려면 로그인해 주세요.'
+                : postDetailError(detail.error)}
+          </Text>
+        )}
+        {accessToken && validId && detail.isError && (
+          <Button hierarchy="primary" onPress={() => void detail.refetch()}>
+            다시 시도
+          </Button>
+        )}
         <Button hierarchy="primary" onPress={goBack}>
           돌아가기
         </Button>
       </View>
     );
 
-  const requestCount = post.requestCount ?? 0;
-  const isNow = post.onsite !== false;
-  const authorName = post.author?.nickname ?? (post.isMine ? nickname : '작성자');
+  const response = detail.data;
+  const closePostMenu = () => {
+    if (!deleteInProgress.current) setPostMenuOpen(false);
+  };
+  const resetDelete = () => {
+    deleteInProgress.current = false;
+    setDeleteBusy(false);
+  };
+  const confirmDelete = async () => {
+    if (deleteInProgress.current || !response.isMine || response.status !== 'AVAILABLE') return;
+    deleteInProgress.current = true;
+    setDeleteBusy(true);
+    const sameSession = () => useAuthStore.getState().sessionId === sessionId;
+    if (__DEV__) console.info('[post-delete] precheck request', { postId: id });
+    try {
+      const latest = await getPostDetail(id);
+      if (__DEV__)
+        console.info('[post-delete] precheck result', {
+          postId: id,
+          status: latest.status,
+          isMine: latest.isMine,
+          requestCount: latest.requestCount,
+        });
+      if (!sameSession()) {
+        resetDelete();
+        return;
+      }
+      queryClient.setQueryData(detailKey, latest);
+      if (!latest.isMine || latest.status !== 'AVAILABLE') {
+        Alert.alert('교환글 삭제', postDeleteLockedMessage);
+        resetDelete();
+        return;
+      }
+      const description =
+        latest.requestCount > 0
+          ? `받은 요청이 ${latest.requestCount}개 있어요. 그래도 교환글을 삭제할까요?`
+          : '삭제한 교환글은 복구할 수 없어요.';
+      if (__DEV__) console.info('[post-delete] confirm opened', { postId: id });
+      Alert.alert(
+        '교환글을 삭제할까요?',
+        description,
+        [
+          {
+            text: '취소',
+            style: 'cancel',
+            onPress: () => {
+              if (__DEV__) console.info('[post-delete] canceled', { postId: id });
+              resetDelete();
+            },
+          },
+          {
+            text: '삭제하기',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                if (__DEV__)
+                  console.info('[post-delete] confirmed', {
+                    postId: id,
+                    sameSession: sameSession(),
+                  });
+                if (!sameSession()) return;
+                await deletePost(id);
+                if (!sameSession()) return;
+                const listKey = [...homePostsKey, sessionId];
+                await queryClient.cancelQueries({ queryKey: listKey });
+                queryClient.setQueriesData<InfiniteData<HomePostsPage>>(
+                  { queryKey: listKey },
+                  (cached) =>
+                    cached && {
+                      ...cached,
+                      pages: cached.pages.map((page) => ({
+                        ...page,
+                        content: page.content.filter((post) => post.id !== response.id),
+                      })),
+                    },
+                );
+                useExchangeStore.getState().removeOwnPost(response.id);
+                void queryClient.invalidateQueries({ queryKey: listKey });
+                setPostMenuOpen(false);
+                goBack();
+              } catch (error) {
+                if (sameSession()) {
+                  Alert.alert('교환글 삭제 실패', postDeleteError(error));
+                  void detail.refetch();
+                }
+              } finally {
+                resetDelete();
+              }
+            },
+          },
+        ],
+        { cancelable: false },
+      );
+    } catch (error) {
+      if (__DEV__)
+        console.warn('[post-delete] precheck failed', {
+          postId: id,
+          message: postDeleteError(error),
+        });
+      if (sameSession()) Alert.alert('삭제 가능 여부 확인 실패', postDeleteError(error));
+      resetDelete();
+    }
+  };
+  const elapsed = Math.floor((now - Date.parse(response.createdAt)) / 60_000);
+  const remaining = Math.ceil((Date.parse(response.nowExchangeEndsAt ?? '') - now) / 60_000);
+  const post = {
+    ...response,
+    photos: response.images
+      .map(({ url }) => postImageSource(url, accessToken))
+      .filter((source) => source !== null),
+    category:
+      Object.entries(postCategories).find(([, value]) => value === response.category)?.[0] ??
+      response.category,
+    wanted: response.wantedItem ?? '상관없음',
+    condition: response.opened ? '개봉' : '미개봉',
+    location: response.place.name,
+    locationDetail: response.place.memo,
+    locationPoint: { latitude: response.place.lat, longitude: response.place.lng },
+    minutes: Math.max(0, elapsed || 0),
+    remaining: Math.max(0, remaining || 0),
+  };
+  const requestCount = post.requestCount;
+  const isNow = post.nowExchange || !!post.nowExchangeEndsAt;
+  const authorName = post.author.nickname;
+  const showAction = !post.isMine || requestCount > 0;
+  const actionDisabled = !post.isMine && !post.chatRoomId && !post.canRequest;
   const actionLabel = post.isMine
-    ? requestCount > 0
-      ? `받은 요청 ${requestCount}개 보기`
-      : '아직 받은 요청이 없어요'
-    : '교환 요청하기';
+    ? `받은 요청 ${requestCount}개 보기`
+    : post.chatRoomId
+      ? '채팅으로 이동'
+      : post.canRequest
+        ? '교환 요청하기'
+        : '교환을 요청할 수 없어요';
+  const statusLabel =
+    post.status === 'COMPLETED'
+      ? '교환 완료'
+      : post.status === 'RESERVED'
+        ? '예약 중'
+        : isNow && post.remaining <= 0
+          ? '교환 종료'
+          : '교환 가능';
 
   return (
     <View
@@ -149,7 +342,7 @@ export default function PostDetail() {
       <ScrollView
         className="flex-1"
         contentInsetAdjustmentBehavior="never"
-        contentContainerStyle={{ paddingBottom: 0 }}
+        contentContainerStyle={{ paddingBottom: showAction ? 0 : insets.bottom }}
         showsVerticalScrollIndicator={false}
       >
         <View style={{ height: photoWidth }} className="overflow-hidden bg-[#E5E7EB]">
@@ -162,14 +355,43 @@ export default function PostDetail() {
                 setPhotoIndex(Math.round(event.nativeEvent.contentOffset.x / photoWidth))
               }
             >
-              {post.photos.map((uri, index) => (
-                <Image
-                  key={`${uri}-${index}`}
-                  source={uri}
-                  accessibilityLabel={`굿즈 사진 ${index + 1}`}
-                  style={{ width: photoWidth, height: photoWidth }}
-                  contentFit="cover"
-                />
+              {post.photos.map((source, index) => (
+                <Pressable
+                  key={`${source.uri}-${index}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`굿즈 사진 ${index + 1} 크게 보기`}
+                  onPress={() => setViewerIndex(index)}
+                >
+                  <Image
+                    source={source}
+                    cachePolicy="none"
+                    onLoadStart={() => {
+                      if (__DEV__)
+                        console.info('[post-images] GET request', {
+                          url: source.uri.split(/[?#]/, 1)[0],
+                          authenticated: Boolean(source.headers?.Authorization),
+                        });
+                    }}
+                    onLoad={({ source: loaded, cacheType }) => {
+                      if (__DEV__)
+                        console.info('[post-images] GET loaded', {
+                          url: source.uri.split(/[?#]/, 1)[0],
+                          width: loaded.width,
+                          height: loaded.height,
+                          cacheType,
+                        });
+                    }}
+                    onError={({ error }) => {
+                      if (__DEV__)
+                        console.warn('[post-images] GET error', {
+                          url: source.uri.split(/[?#]/, 1)[0],
+                          error: error?.replace(source.uri, source.uri.split(/[?#]/, 1)[0]),
+                        });
+                    }}
+                    style={{ width: photoWidth, height: photoWidth }}
+                    contentFit="cover"
+                  />
+                </Pressable>
               ))}
             </ScrollView>
           ) : (
@@ -202,14 +424,17 @@ export default function PostDetail() {
               accessibilityLabel="게시글 더보기"
               hierarchy="primary"
               className="h-11 w-11"
-              onPress={() =>
-                Alert.alert(
-                  '게시글 메뉴',
-                  post.isMine
-                    ? '게시글 수정·삭제 기능은 준비 중이에요.'
-                    : '신고 기능은 준비 중이에요.',
-                )
-              }
+              onPress={() => {
+                if (post.isMine) {
+                  if (__DEV__)
+                    console.info('[post-delete] menu opened', {
+                      postId: id,
+                      status: post.status,
+                      canDelete: post.status === 'AVAILABLE',
+                    });
+                  setPostMenuOpen(true);
+                } else Alert.alert('게시글 메뉴', '신고 기능은 준비 중이에요.');
+              }}
             />
           </View>
           <View
@@ -244,7 +469,7 @@ export default function PostDetail() {
                   includeFontPadding: false,
                 }}
               >
-                {photoIndex + 1} / {post.photos.length}
+                {Math.min(photoIndex + 1, post.photos.length)} / {post.photos.length}
               </Text>
             </View>
           )}
@@ -290,7 +515,7 @@ export default function PostDetail() {
                 {post.remaining > 0 ? `${post.remaining}분 남음` : '교환 마감'}
               </DetailBadge>
             )}
-            <DetailBadge>{isNow && post.remaining <= 0 ? '교환 종료' : '교환 가능'}</DetailBadge>
+            <DetailBadge>{statusLabel}</DetailBadge>
             <Text
               className="font-sans"
               style={{
@@ -309,8 +534,8 @@ export default function PostDetail() {
           </View>
           <View style={{ marginTop: 16, gap: 8 }}>
             <InfoRow label="카테고리" value={post.category} />
-            <InfoRow label="상품상태" value={post.condition?.join(' · ') || '등록된 상태 없음'} />
-            <InfoRow label="원해요" value={post.wantedDetail || post.wanted} />
+            <InfoRow label="상품상태" value={post.condition} />
+            <InfoRow label="원해요" value={post.wanted} />
           </View>
           <Text
             className="font-sans"
@@ -494,7 +719,7 @@ export default function PostDetail() {
               className="font-sans"
               style={{ fontSize: 13, lineHeight: 20, color: '#6A7282', includeFontPadding: false }}
             >
-              교환 완료 {post.author?.completedExchanges ?? 0}회
+              교환 완료 {post.author.completedCount}회
             </Text>
           </View>
           <Text
@@ -508,49 +733,205 @@ export default function PostDetail() {
               includeFontPadding: false,
             }}
           >
-            매너 지표 {post.author?.mannerScore ?? '—'}
+            매너 지표 —
           </Text>
         </View>
       </ScrollView>
-      <View
-        style={{
-          backgroundColor: '#FFFFFF',
-          paddingHorizontal: 16,
-          paddingTop: 12,
-          paddingBottom: 8 + insets.bottom,
-          flexShrink: 0,
-        }}
-      >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ disabled: !!post.isMine && requestCount === 0 }}
-          disabled={!!post.isMine && requestCount === 0}
-          onPress={() =>
-            Alert.alert(post.isMine ? '받은 교환 요청' : '교환 요청', '요청 화면은 준비 중이에요.')
-          }
+      {showAction && (
+        <View
           style={{
-            height: 52,
-            width: '100%',
-            borderRadius: 12,
-            backgroundColor: post.isMine && requestCount === 0 ? '#D1D5DC' : '#364153',
-            alignItems: 'center',
-            justifyContent: 'center',
+            backgroundColor: '#FFFFFF',
+            paddingHorizontal: 16,
+            paddingTop: 12,
+            paddingBottom: 8 + insets.bottom,
+            flexShrink: 0,
           }}
         >
-          <Text
-            className="font-sans"
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: actionDisabled }}
+            disabled={actionDisabled}
+            onPress={() => Alert.alert(actionLabel, '이 화면은 준비 중이에요.')}
             style={{
-              fontSize: 16,
-              lineHeight: 22,
-              letterSpacing: -0.16,
-              color: post.isMine && requestCount === 0 ? '#99A1AF' : '#FFFFFF',
-              includeFontPadding: false,
+              height: 52,
+              width: '100%',
+              borderRadius: 12,
+              backgroundColor: actionDisabled ? '#D1D5DC' : '#364153',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            {actionLabel}
-          </Text>
-        </Pressable>
-      </View>
+            <Text
+              className="font-sans"
+              style={{
+                fontSize: 16,
+                lineHeight: 22,
+                letterSpacing: -0.16,
+                color: actionDisabled ? '#99A1AF' : '#FFFFFF',
+                includeFontPadding: false,
+              }}
+            >
+              {actionLabel}
+            </Text>
+          </Pressable>
+        </View>
+      )}
+      <Modal
+        visible={post.isMine && postMenuOpen}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        navigationBarTranslucent
+        onRequestClose={closePostMenu}
+      >
+        <View className="flex-1 justify-end">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="게시글 메뉴 닫기"
+            className="absolute inset-0"
+            style={{ backgroundColor: '#00000070' }}
+            onPress={closePostMenu}
+          />
+          <View
+            accessibilityViewIsModal
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              overflow: 'hidden',
+              paddingBottom: Math.max(34, insets.bottom),
+            }}
+          >
+            <View style={{ height: 12, alignItems: 'center', justifyContent: 'flex-end' }}>
+              <View
+                style={{ width: 48, height: 4, borderRadius: 2, backgroundColor: '#000D4B25' }}
+              />
+            </View>
+            <View style={{ height: 104, paddingHorizontal: 16, paddingTop: 8, overflow: 'hidden' }}>
+              {[
+                {
+                  label: '수정하기',
+                  icon: PencilSimpleIcon,
+                  color: '#232531',
+                  iconColor: '#00051E8D',
+                  disabled: post.status !== 'AVAILABLE',
+                  disabledMessage: postEditLockedMessage,
+                  onPress: () => {
+                    setPostMenuOpen(false);
+                    router.push({ pathname: '/post/edit/[id]', params: { id: String(post.id) } });
+                  },
+                },
+                {
+                  label: '삭제하기',
+                  icon: TrashIcon,
+                  color: '#EC0042',
+                  iconColor: '#EC0042',
+                  disabled: post.status !== 'AVAILABLE',
+                  disabledMessage: postDeleteLockedMessage,
+                  onPress: () => void confirmDelete(),
+                },
+              ].map(
+                ({
+                  label,
+                  icon: ActionIcon,
+                  color,
+                  iconColor,
+                  disabled,
+                  disabledMessage,
+                  onPress,
+                }) => (
+                  <Pressable
+                    key={label}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: disabled || deleteBusy }}
+                    accessibilityHint={disabled ? disabledMessage : undefined}
+                    disabled={disabled || deleteBusy}
+                    onPress={onPress}
+                    style={{
+                      height: 48,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {({ pressed }) => (
+                      <>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <ActionIcon size={20} color={disabled ? '#99A1AF' : iconColor} />
+                          <View>
+                            <Text
+                              style={{
+                                fontFamily: 'Pretendard',
+                                color: disabled ? '#99A1AF' : color,
+                                fontSize: 16,
+                                lineHeight: 22,
+                                letterSpacing: -0.16,
+                                includeFontPadding: false,
+                                transform: [{ translateY: -1.4 }],
+                              }}
+                            >
+                              {label}
+                            </Text>
+                            {disabled && (
+                              <Text className="font-sans text-[12px] leading-4 text-[#6A7282]">
+                                {disabledMessage}
+                              </Text>
+                            )}
+                          </View>
+                        </View>
+                        <CaretRightIcon size={20} color="#000A3161" />
+                        <InteractionLayer pressed={pressed} color="#000212D1" />
+                      </>
+                    )}
+                  </Pressable>
+                ),
+              )}
+            </View>
+            <View style={{ height: 72, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 }}>
+              <Pressable
+                accessibilityRole="button"
+                onPress={closePostMenu}
+                disabled={deleteBusy}
+                style={{
+                  height: 52,
+                  borderRadius: 16,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#00264E0D',
+                  overflow: 'hidden',
+                }}
+              >
+                {({ pressed }) => (
+                  <>
+                    <Text
+                      style={{
+                        fontFamily: 'Pretendard',
+                        color: '#000419AA',
+                        fontSize: 18,
+                        lineHeight: 24,
+                        letterSpacing: -0.18,
+                        includeFontPadding: false,
+                        transform: [{ translateY: -1.2 }],
+                      }}
+                    >
+                      닫기
+                    </Text>
+                    <InteractionLayer pressed={pressed} color="#000212D1" />
+                  </>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      {viewerIndex !== null && (
+        <PostPhotoViewer
+          photos={post.photos}
+          initialIndex={viewerIndex}
+          onClose={() => setViewerIndex(null)}
+        />
+      )}
       <Modal
         visible={mapOpen}
         animationType="slide"

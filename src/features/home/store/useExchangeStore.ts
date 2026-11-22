@@ -29,17 +29,23 @@ export const useExchangeStore = create<{
   publishedPostId: number | null;
   dismissPublishedToast: () => void;
   setPosts: (posts: ExchangePost[]) => void;
-  addPost: (post: Omit<ExchangePost, 'id'>) => number;
+  addPost: (post: ExchangePost) => void;
+  removeOwnPost: (id: number) => void;
 }>((set) => ({
   posts: initialPosts,
   publishedPostId: null,
   dismissPublishedToast: () => set({ publishedPostId: null }),
   setPosts: (posts) => set({ posts }),
-  addPost: (post) => {
-    const id = Date.now();
-    set((state) => ({ posts: [{ ...post, id }, ...state.posts], publishedPostId: id }));
-    return id;
-  },
+  removeOwnPost: (id) =>
+    set((state) => ({
+      posts: state.posts.filter((post) => post.id !== id || !post.isMine),
+      publishedPostId: state.publishedPostId === id ? null : state.publishedPostId,
+    })),
+  addPost: (post) =>
+    set((state) => ({
+      posts: [post, ...state.posts.filter(({ id }) => id !== post.id)],
+      publishedPostId: post.id,
+    })),
 }));
 
 export { initialPosts } from '@/constants/posts';
