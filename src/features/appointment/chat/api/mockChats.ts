@@ -194,7 +194,7 @@ function buildMessages(room: ChatRoomSummary): ChatMessage[] {
     ];
   }
   if (COMPLETION_ROOMS.includes(room.id)) {
-    // F-1: 약속 확정 → 약속 시각이 지나 '교환을 무사히 완료했나요?' 카드
+    // F-1: 약속 확정 → 약속 시각이 지나 '교환을 완료했나요?' 카드
     const before = daysAgo(2, 10, 0);
     return [
       { ...request, sentAt: before },
