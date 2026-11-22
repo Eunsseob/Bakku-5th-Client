@@ -10,23 +10,28 @@ import {
   useSimultaneousGestures,
   useTapGesture,
 } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, {
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { scheduleOnRN } from 'react-native-worklets';
+import { scheduleOnRN, scheduleOnUI } from 'react-native-worklets';
 
 const clamp = (value: number, min: number, max: number) => {
   'worklet';
   return Math.min(max, Math.max(min, value));
 };
 
-function ZoomablePhoto({
-  source,
-  label,
-  onPage,
+function ZoomablePhotos({
+  photos,
+  activeIndex,
+  onIndexChange,
 }: {
-  source: ImageSource;
-  label: string;
-  onPage: (direction: number) => void;
+  photos: ImageSource[];
+  activeIndex: number;
+  onIndexChange: (index: number) => void;
 }) {
   const { width, height } = useWindowDimensions();
   const frameHeight = Math.min(width, height);
@@ -34,21 +39,52 @@ function ZoomablePhoto({
   const offsetX = useSharedValue(0);
   const offsetY = useSharedValue(0);
   const pinchStart = useSharedValue({ scale: 1, x: 0, y: 0, focalX: 0, focalY: 0 });
-  const panStart = useSharedValue({ x: 0, y: 0, zoomed: false });
+  const panStart = useSharedValue({ x: 0, y: 0, zoomed: false, enabled: false });
   const pinching = useSharedValue(false);
-  const imageSize = useSharedValue({ width, height: frameHeight });
+  const pageIndex = useSharedValue(activeIndex);
+  const pageDrag = useSharedValue(0);
+  const changingPage = useSharedValue(false);
+  const imageSizes = useSharedValue<Record<number, { width: number; height: number }>>({});
+  const photoCount = photos.length;
+
+  const changePage = (direction: number) => {
+    'worklet';
+    if (changingPage.value) return;
+    const next = clamp(pageIndex.value + direction, 0, photoCount - 1);
+    if (next === pageIndex.value) {
+      pageDrag.value = withTiming(0, { duration: 180 });
+      return;
+    }
+
+    changingPage.value = true;
+    scale.value = withTiming(1, { duration: 200 });
+    offsetX.value = withTiming(0, { duration: 200 });
+    offsetY.value = withTiming(0, { duration: 200 });
+    pageDrag.value = withTiming(pageIndex.value - next, { duration: 220 }, (finished) => {
+      if (finished) {
+        pageIndex.value = next;
+        pageDrag.value = 0;
+        scheduleOnRN(onIndexChange, next);
+      }
+      changingPage.value = false;
+    });
+  };
 
   const moveTo = (x: number, y: number, zoom: number) => {
     'worklet';
-    const maxX = Math.max(0, (imageSize.value.width * zoom - width) / 2);
-    const maxY = Math.max(0, (imageSize.value.height * zoom - height) / 2);
+    const size = imageSizes.value[pageIndex.value];
+    const fit = size ? Math.min(width / size.width, frameHeight / size.height) : 1;
+    const maxX = Math.max(0, ((size ? size.width * fit : width) * zoom - width) / 2);
+    const maxY = Math.max(0, ((size ? size.height * fit : frameHeight) * zoom - height) / 2);
     offsetX.value = clamp(x, -maxX, maxX);
     offsetY.value = clamp(y, -maxY, maxY);
   };
 
   const pinch = usePinchGesture({
     onActivate: ({ focalX, focalY }) => {
+      if (changingPage.value) return;
       pinching.value = true;
+      pageDrag.value = withTiming(0, { duration: 180 });
       pinchStart.value = {
         scale: scale.value,
         x: offsetX.value,
@@ -58,6 +94,7 @@ function ZoomablePhoto({
       };
     },
     onUpdate: ({ scale: factor, focalX, focalY }) => {
+      if (!pinching.value) return;
       const start = pinchStart.value;
       const zoom = clamp(start.scale * factor, 1, 4);
       const ratio = zoom / start.scale;
@@ -75,29 +112,51 @@ function ZoomablePhoto({
   const pan = usePanGesture({
     maxPointers: 1,
     onActivate: () => {
-      panStart.value = { x: offsetX.value, y: offsetY.value, zoomed: scale.value > 1 };
+      panStart.value = {
+        x: offsetX.value,
+        y: offsetY.value,
+        zoomed: scale.value > 1,
+        enabled: !changingPage.value && !pinching.value,
+      };
+      if (panStart.value.enabled) cancelAnimation(pageDrag);
     },
     onUpdate: ({ translationX, translationY }) => {
+      if (!panStart.value.enabled || changingPage.value || pinching.value) return;
       const start = panStart.value;
-      if (!pinching.value && start.zoomed)
+      if (start.zoomed) {
         moveTo(start.x + translationX, start.y + translationY, scale.value);
+      } else if (scale.value === 1) {
+        const draggingOutward =
+          (pageIndex.value === 0 && translationX > 0) ||
+          (pageIndex.value === photoCount - 1 && translationX < 0);
+        pageDrag.value =
+          Math.abs(translationX) > Math.abs(translationY)
+            ? clamp(translationX / width, -1, 1) * (draggingOutward ? 0.2 : 1)
+            : 0;
+      }
     },
-    onDeactivate: ({ canceled, translationX, translationY }) => {
+    onDeactivate: ({ canceled, translationX, translationY, velocityX }) => {
+      if (!panStart.value.enabled || changingPage.value || pinching.value) return;
       if (
         !canceled &&
-        !pinching.value &&
         !panStart.value.zoomed &&
         scale.value === 1 &&
-        Math.abs(translationX) > Math.max(48, Math.abs(translationY))
+        Math.abs(translationX) > Math.abs(translationY) &&
+        (Math.abs(translationX) >= width * 0.2 ||
+          (Math.abs(translationX) >= 12 &&
+            Math.abs(velocityX) >= 650 &&
+            translationX * velocityX > 0))
       ) {
-        scheduleOnRN(onPage, translationX < 0 ? 1 : -1);
+        changePage(translationX < 0 ? 1 : -1);
+      } else {
+        pageDrag.value = withTiming(0, { duration: 180 });
       }
     },
   });
   const doubleTap = useTapGesture({
     numberOfTaps: 2,
     onDeactivate: ({ canceled }) => {
-      if (canceled) return;
+      if (canceled || changingPage.value) return;
       const zoom = scale.value > 1 ? 1 : 2.5;
       offsetX.value = withTiming(0);
       offsetY.value = withTiming(0);
@@ -105,6 +164,9 @@ function ZoomablePhoto({
     },
   });
   const gesture = useSimultaneousGestures(pinch, pan, doubleTap);
+  const pageTransform = useAnimatedStyle(() => ({
+    transform: [{ translateX: (pageDrag.value - pageIndex.value) * width }],
+  }));
   const imageTransform = useAnimatedStyle(() => ({
     transform: [
       { translateX: offsetX.value },
@@ -119,25 +181,38 @@ function ZoomablePhoto({
         collapsable={false}
         className="flex-1 items-center justify-center overflow-hidden"
         accessible
-        accessibilityLabel={label}
+        accessibilityLabel={`굿즈 사진 ${activeIndex + 1} / ${photoCount}`}
         accessibilityRole="adjustable"
         accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
         onAccessibilityAction={({ nativeEvent }) =>
-          onPage(nativeEvent.actionName === 'increment' ? 1 : -1)
+          scheduleOnUI(changePage, nativeEvent.actionName === 'increment' ? 1 : -1)
         }
       >
-        <Animated.View style={[{ width, height: frameHeight }, imageTransform]}>
-          <Image
-            source={source}
-            cachePolicy="none"
-            contentFit="contain"
-            style={{ flex: 1 }}
-            onLoad={({ source: loaded }) => {
-              if (!loaded.width || !loaded.height) return;
-              const fit = Math.min(width / loaded.width, frameHeight / loaded.height);
-              imageSize.value = { width: loaded.width * fit, height: loaded.height * fit };
-            }}
-          />
+        <Animated.View
+          className="flex-row self-start"
+          style={[{ width: width * photoCount, height: frameHeight }, pageTransform]}
+        >
+          {photos.map((source, index) => (
+            <Animated.View
+              key={index}
+              style={[{ width, height: frameHeight }, index === activeIndex && imageTransform]}
+            >
+              <Image
+                source={source}
+                cachePolicy="memory"
+                contentFit="contain"
+                style={{ flex: 1 }}
+                onLoad={({ source: loaded }) => {
+                  const { width: imageWidth, height: imageHeight } = loaded;
+                  if (!imageWidth || !imageHeight) return;
+                  imageSizes.modify((sizes) => {
+                    'worklet';
+                    return { ...sizes, [index]: { width: imageWidth, height: imageHeight } };
+                  });
+                }}
+              />
+            </Animated.View>
+          ))}
         </Animated.View>
       </View>
     </GestureDetector>
@@ -168,16 +243,7 @@ export default function PostPhotoViewer({
       onRequestClose={onClose}
     >
       <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#000000' }}>
-        <ZoomablePhoto
-          key={activeIndex}
-          source={current}
-          label={`굿즈 사진 ${activeIndex + 1} / ${photos.length}`}
-          onPage={(direction) =>
-            setIndex((currentIndex) =>
-              clamp(Math.min(currentIndex, photos.length - 1) + direction, 0, photos.length - 1),
-            )
-          }
-        />
+        <ZoomablePhotos photos={photos} activeIndex={activeIndex} onIndexChange={setIndex} />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="사진 닫기"

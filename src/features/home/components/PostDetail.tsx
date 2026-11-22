@@ -11,7 +11,7 @@ import { DotsThreeVerticalIcon } from 'phosphor-react-native/src/icons/DotsThree
 import { MapPinIcon } from 'phosphor-react-native/src/icons/MapPin';
 import { PencilSimpleIcon } from 'phosphor-react-native/src/icons/PencilSimple';
 import { TrashIcon } from 'phosphor-react-native/src/icons/Trash';
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -152,6 +152,18 @@ export default function PostDetail() {
   const [photoIndex, setPhotoIndex] = useState(0);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now);
+  const images = detail.data?.images;
+  const photos = useMemo(() => {
+    if (!images || !accessToken) return [];
+
+    return images
+      .map(({ url }) => postImageSource(url, accessToken))
+      .filter((source) => source !== null)
+      .map((source) => ({
+        ...source,
+        cacheKey: `post-photo:${sessionId}:${queryInstance}:${source.uri}`,
+      }));
+  }, [images, accessToken, sessionId, queryInstance]);
   useEffect(() => {
     if (!detail.data?.nowExchangeEndsAt) return;
     const timer = setInterval(() => setNow(Date.now()), 15_000);
@@ -162,6 +174,8 @@ export default function PostDetail() {
     else router.replace('/(main)/home');
   };
 
+  const isLoadingDetail = Boolean(accessToken) && validId && detail.isPending;
+
   if (!accessToken || !validId || !detail.data)
     return (
       <View
@@ -169,7 +183,7 @@ export default function PostDetail() {
         style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}
       >
         <Stack.Screen options={{ headerShown: false }} />
-        {accessToken && validId && detail.isPending ? (
+        {isLoadingDetail ? (
           <ActivityIndicator accessibilityLabel="게시글 불러오는 중" />
         ) : (
           <Text className="font-sans text-[16px] text-[#364153]">
@@ -185,9 +199,11 @@ export default function PostDetail() {
             다시 시도
           </Button>
         )}
-        <Button hierarchy="primary" onPress={goBack}>
-          돌아가기
-        </Button>
+        {!isLoadingDetail && (
+          <Button hierarchy="primary" onPress={goBack}>
+            돌아가기
+          </Button>
+        )}
       </View>
     );
 
@@ -298,9 +314,7 @@ export default function PostDetail() {
   const remaining = Math.ceil((Date.parse(response.nowExchangeEndsAt ?? '') - now) / 60_000);
   const post = {
     ...response,
-    photos: response.images
-      .map(({ url }) => postImageSource(url, accessToken))
-      .filter((source) => source !== null),
+    photos,
     category:
       Object.entries(postCategories).find(([, value]) => value === response.category)?.[0] ??
       response.category,
@@ -350,6 +364,8 @@ export default function PostDetail() {
             <ScrollView
               horizontal
               pagingEnabled
+              directionalLockEnabled
+              removeClippedSubviews={false}
               showsHorizontalScrollIndicator={false}
               onMomentumScrollEnd={(event) =>
                 setPhotoIndex(Math.round(event.nativeEvent.contentOffset.x / photoWidth))
@@ -364,7 +380,7 @@ export default function PostDetail() {
                 >
                   <Image
                     source={source}
-                    cachePolicy="none"
+                    cachePolicy="memory"
                     onLoadStart={() => {
                       if (__DEV__)
                         console.info('[post-images] GET request', {
@@ -409,6 +425,7 @@ export default function PostDetail() {
             <Rect width="100%" height="100%" fill="url(#photoShade)" />
           </Svg>
           <View
+            pointerEvents="box-none"
             className="absolute left-3 right-3 flex-row justify-between"
             style={{ top: insets.top + 4 }}
           >
@@ -438,6 +455,7 @@ export default function PostDetail() {
             />
           </View>
           <View
+            pointerEvents="none"
             style={{ position: 'absolute', bottom: 12, left: 12, flexDirection: 'row', gap: 8 }}
           >
             <DetailBadge dark photo>
@@ -447,6 +465,7 @@ export default function PostDetail() {
           </View>
           {!!post.photos?.length && (
             <View
+              pointerEvents="none"
               style={{
                 position: 'absolute',
                 right: 12,

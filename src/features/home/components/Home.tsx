@@ -32,6 +32,7 @@ const categories = new Map<string, 'CHARACTER' | 'IDOL' | 'SPORTS' | 'ETC'>([
 const writeButtonSize = 56;
 const writeButtonRadius = writeButtonSize / 2;
 const bottomTabBarHeight = 48;
+const refreshScrollDistance = 48;
 export default function Home() {
   const insets = useSafeAreaInsets();
   // The tab bar and its safe-area padding sit below the home screen.
@@ -64,6 +65,12 @@ export default function Home() {
     keyword: isSearching ? keyword : undefined,
   };
   const canFetch = Boolean(accessToken) && !invalidKeyword && !waitingForKeyword;
+  const listKey = JSON.stringify(filters);
+  const hasScrolledAwayFromTop = useRef(false);
+  useEffect(() => {
+    hasScrolledAwayFromTop.current = false;
+  }, [listKey, location, sessionId]);
+
   const posts = useInfiniteQuery({
     queryKey: [...homePostsKey, sessionId, filters],
     queryFn: ({ pageParam, signal }) => getHomePosts(filters, pageParam, signal),
@@ -121,6 +128,11 @@ export default function Home() {
     if (canFetch && posts.hasNextPage && !posts.isFetching)
       void posts.fetchNextPage({ cancelRefetch: false });
   };
+  const refreshPosts = () => {
+    if (!canFetch) return;
+    setDropdown(null);
+    void posts.refetch({ cancelRefetch: posts.isFetchingNextPage });
+  };
 
   return (
     <View
@@ -162,7 +174,7 @@ export default function Home() {
           </Text>
         </View>
         <FlatList
-          key={JSON.stringify(filters)}
+          key={listKey}
           data={visiblePosts}
           keyboardShouldPersistTaps="handled"
           keyExtractor={(post) => String(post.id)}
@@ -179,15 +191,22 @@ export default function Home() {
             if (visiblePosts.length && !posts.isFetchNextPageError) loadMore();
           }}
           onEndReachedThreshold={0.5}
+          onScroll={({ nativeEvent }) => {
+            const offset = nativeEvent.contentOffset.y;
+            if (offset >= refreshScrollDistance) {
+              hasScrolledAwayFromTop.current = true;
+            } else if (offset <= 1 && hasScrolledAwayFromTop.current) {
+              hasScrolledAwayFromTop.current = false;
+              refreshPosts();
+            }
+          }}
+          scrollEventThrottle={32}
           alwaysBounceVertical
           refreshControl={
             canFetch ? (
               <RefreshControl
                 refreshing={posts.isRefetching && !posts.isFetchingNextPage}
-                onRefresh={() => {
-                  setDropdown(null);
-                  void posts.refetch();
-                }}
+                onRefresh={refreshPosts}
                 tintColor="#2E2E33"
                 colors={['#2E2E33']}
               />
