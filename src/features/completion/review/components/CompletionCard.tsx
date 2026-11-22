@@ -8,13 +8,13 @@ import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
 
 import { primitive } from '@/design-tokens';
-import { Button, Icon, type IconComponent } from '@/shared/components';
+import { Button, Divider, Icon, type IconComponent } from '@/shared/components';
 
 import type { CompletionState } from '../types';
 
 // F. 교환 완료 카드 (채팅방 메시지). Figma BDS '📝 화면 작업 > ✅F. 교환 완료' 값 그대로
 // 흰 바탕 · stroke-subtler 테두리 r12, 안쪽 14·12, 사이 10
-// 제목 body/md Medium → 8 → [구분선 → 12 → 내용 label/md (줄 사이 8)] → 안내 · 버튼(224, 사이 8)
+// 제목 body/md Medium → 8 → [BDS Divider → 12 → 내용 label/md (줄 사이 8)] → 안내 · 버튼(224, 사이 8)
 // F-1 묻는 카드 / F-2 성공 / F-3 실패. '합의하에 취소했어요' 는 2차로 옮겨져 뺐다.
 // 와이어 회색(foreground/normal #364153 · neutral #4a5565 · gray/400 #99a1af)은 가장 가까운 BDS 회색(wire.tsx 표)을 쓴다.
 
@@ -65,7 +65,7 @@ export function CompletionCard({ appointment, state, onComplete, onFail }: Compl
           {TITLE[state]}
         </Text>
         <View className="gap-3">
-          <View className="h-px bg-gray-75" />
+          <Divider />
           <View className="gap-2">
             <DetailRow icon={ArrowsLeftRightIcon}>
               {appointment.items.map((item) => (

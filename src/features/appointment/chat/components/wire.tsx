@@ -1,6 +1,5 @@
 import { CheckIcon } from 'phosphor-react-native/src/icons/Check';
-import type { ReactNode } from 'react';
-import { Modal, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { primitive } from '@/design-tokens';
@@ -28,28 +27,6 @@ export const WIRE = {
   line: GRAY[150],
   white: primitive.base[0],
 };
-
-/** 태그: 회색 바탕 + 테두리 (예약중은 진한 바탕) */
-export function WireTag({
-  children,
-  tone = 'neutral',
-}: {
-  children: string;
-  tone?: 'neutral' | 'dark';
-}) {
-  const dark = tone === 'dark';
-  return (
-    <View
-      className={`rounded-4 px-1.5 py-0.5 ${dark ? 'bg-gray-600' : 'border border-gray-75 bg-gray-50'}`}
-    >
-      <Text
-        className={`font-sans text-label-xs font-medium tracking-normal ${dark ? 'text-white' : 'text-gray-600'}`}
-      >
-        {children}
-      </Text>
-    </View>
-  );
-}
 
 /** 안 읽은 메시지 수 (99 초과면 +99) */
 export function WireCount({ count }: { count: number }) {
@@ -147,80 +124,5 @@ export function WireCheckbox({ checked }: { checked: boolean }) {
     </View>
   ) : (
     <View className="size-5 rounded-4 border border-gray-150" />
-  );
-}
-
-/** 확인 창: 흐린 배경(16%) + 가운데 카드, [회색] [진한] 버튼 */
-export function WireDialog({
-  visible,
-  title,
-  description,
-  cancelLabel = '취소',
-  confirmLabel,
-  onCancel,
-  onConfirm,
-  children,
-}: {
-  visible: boolean;
-  title: string;
-  description?: string;
-  cancelLabel?: string;
-  confirmLabel: string;
-  onCancel: () => void;
-  onConfirm: () => void;
-  children?: ReactNode;
-}) {
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      statusBarTranslucent
-      onRequestClose={onCancel}
-    >
-      <View className="flex-1 items-center justify-center px-10">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="닫기"
-          onPress={onCancel}
-          className="absolute inset-0 bg-black/15"
-        />
-        <View
-          accessibilityViewIsModal
-          className="w-full max-w-[320px] gap-4 rounded-16 bg-white p-5"
-        >
-          <View className="gap-2">
-            <Text
-              accessibilityRole="header"
-              className="font-sans text-title-2 font-semibold text-gray-900"
-            >
-              {title}
-            </Text>
-            {description ? (
-              <Text className="font-sans text-body-lg font-normal text-gray-600">
-                {description}
-              </Text>
-            ) : null}
-            {children}
-          </View>
-          <View className="flex-row gap-1">
-            <WireButton
-              label={cancelLabel}
-              tone="muted"
-              size="md"
-              onPress={onCancel}
-              className="flex-1"
-            />
-            <WireButton
-              label={confirmLabel}
-              tone="dark"
-              size="md"
-              onPress={onConfirm}
-              className="flex-1"
-            />
-          </View>
-        </View>
-      </View>
-    </Modal>
   );
 }

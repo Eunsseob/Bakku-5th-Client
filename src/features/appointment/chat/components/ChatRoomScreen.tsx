@@ -16,8 +16,8 @@ import {
   View,
 } from 'react-native';
 
-import { CompleteConfirmSheet, CompletionToast } from '@/features/completion/review';
-import { EmptyState, Icon, TopNavigation } from '@/shared/components';
+import { CompleteConfirmSheet } from '@/features/completion/review';
+import { EmptyState, Icon, Modal, Toast, TopNavigation } from '@/shared/components';
 
 import { useChatStore } from '../store/useChatStore';
 import type { ChatRoomDetail } from '../types';
@@ -27,7 +27,7 @@ import { ChatInput } from './ChatInput';
 import { DateDivider, MessageItem } from './MessageItems';
 import { SheetMenu, type SheetMenuOption } from './SheetMenu';
 import { ExchangeStatusBadge } from './StatusBadges';
-import { WIRE, WireDialog } from './wire';
+import { WIRE } from './wire';
 
 // E 채팅·약속-2 ~ 6 (1차): 1:1 채팅방, + 메뉴, 약속 제안 카드, 약속 수락 모달, 약속 확정(예약중)
 // F-1 (1차): 교환 완료 확인 카드, 교환 확정 시트, 성공 · 취소 카드, 토스트
@@ -71,7 +71,10 @@ function PostSummary({ post }: { post: ChatRoomDetail['post'] }) {
             </Text>
           </View>
         </View>
-        <ExchangeStatusBadge status={post.status} emphasized />
+        {/* BDS Tag 는 self-start 라서 감싸서 세로 가운데에 둔다 */}
+        <View>
+          <ExchangeStatusBadge status={post.status} />
+        </View>
       </View>
     </View>
   );
@@ -196,7 +199,7 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
           </ScrollView>
           {toast ? (
             <View pointerEvents="none" className="absolute inset-x-4 bottom-[21px]">
-              <CompletionToast message={toast} />
+              <Toast title={toast} />
             </View>
           ) : null}
         </View>
@@ -213,15 +216,18 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
         onClose={() => setMenuOpen(false)}
       />
       {/* 채팅·약속-6: 약속 수락 모달 */}
-      <WireDialog
+      <Modal
         visible={acceptingId !== null}
         title="약속을 수락할까요?"
         description="약속을 수락하면 다른 사람과 잡은 약속은 모두 취소돼요."
-        confirmLabel="확정하기"
-        onCancel={() => setAcceptingId(null)}
-        onConfirm={() => {
-          if (acceptingId) accept(room.id, acceptingId);
-          setAcceptingId(null);
+        onRequestClose={() => setAcceptingId(null)}
+        secondary={{ label: '취소', onPress: () => setAcceptingId(null) }}
+        primary={{
+          label: '확정하기',
+          onPress: () => {
+            if (acceptingId) accept(room.id, acceptingId);
+            setAcceptingId(null);
+          },
         }}
       />
       {/* F-1: 교환 확정 시트 */}
