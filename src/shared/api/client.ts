@@ -1,10 +1,12 @@
 import { AxiosHeaders, create, isAxiosError, type AxiosRequestConfig } from 'axios';
 
-import { env } from './env';
 import { useAuthStore } from './useAuthStore';
 
+/** 서버 주소. .env 의 EXPO_PUBLIC_API_URL */
+const API_URL = process.env.EXPO_PUBLIC_API_URL?.trim() || '';
+
 export const apiClient = create({
-  baseURL: env.apiUrl,
+  baseURL: API_URL,
   allowAbsoluteUrls: false,
   timeout: 10_000,
   headers: { 'Content-Type': 'application/json' },
@@ -14,7 +16,7 @@ apiClient.interceptors.request.use((config) => {
   const { accessToken } = useAuthStore.getState();
   if (
     accessToken &&
-    config.baseURL === env.apiUrl &&
+    config.baseURL === API_URL &&
     config.allowAbsoluteUrls === false &&
     !config.headers.has('Authorization')
   ) {
@@ -43,3 +45,12 @@ export function apiRequest<T>(config: AxiosRequestConfig, { auth = true } = {}) 
   headers.set('Authorization', false);
   return apiClient.request<T>({ ...config, headers });
 }
+
+/** 서버 공통 응답 형태 (Swagger ResponseBody) */
+export type ApiResponse<T> = {
+  success: boolean;
+  code: string;
+  message: string;
+  data: T;
+  errors?: { field: string; reason: string }[];
+};

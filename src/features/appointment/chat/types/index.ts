@@ -60,7 +60,13 @@ export type ChatMessage =
   | (MessageBase & { type: 'request'; items: ExchangeItem[] })
   | (MessageBase & { type: 'proposal'; appointment: Appointment; state: ProposalState })
   /** F-1 약속 시각이 지나면 오는 교환 완료 확인 카드 */
-  | (MessageBase & { type: 'completion'; appointment: Appointment; state: CompletionState });
+  | (MessageBase & {
+      type: 'completion';
+      appointment: Appointment;
+      state: CompletionState;
+      /** 서버 약속 ID (CARD EXCHANGE_CONFIRMATION 의 targetId). 목업 방은 없다 */
+      appointmentId?: number;
+    });
 
 export type ChatRoomDetail = {
   id: string;
@@ -79,6 +85,6 @@ export type ChatRoomDetail = {
   messages: ChatMessage[];
   /** 확정된 약속 (채팅방 상단 배너). 있으면 글은 예약중 */
   appointment: Appointment | null;
-  /** 목업 전용: 상대가 이미 교환 완료로 답한 상태. 서버가 붙으면 완료 요청의 응답으로 안다 */
+  /** 목업 전용: 상대가 이미 교환 완료로 답한 상태. 서버 방은 교환 확인 응답으로 안다 */
   partnerCompleted?: boolean;
 };

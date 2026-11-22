@@ -6,5 +6,8 @@
  */
 export type CompletionState = 'asking' | 'completed' | 'cancelled';
 
-/** 교환 완료 결과. 상대가 먼저 완료로 답했으면 alreadyCompleted */
-export type CompleteResult = 'completed' | 'alreadyCompleted';
+/** 교환 확인 결과. 상대가 먼저 답해 결과가 났으면 byPartner */
+export type ConfirmResult = {
+  state: Exclude<CompletionState, 'asking'>;
+  byPartner: boolean;
+};
