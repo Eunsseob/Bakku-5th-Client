@@ -126,7 +126,7 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
     if (!messageId) return;
     try {
       if (completeExchange(room.id, messageId) === 'alreadyCompleted') {
-        setToast('상대가 먼저 교환했어요로 답해 완료됐어요');
+        setToast("상대가 먼저 '무사히 교환했어요'로 답해 완료됐어요");
       }
     } catch {
       setToast('잠시 후 다시 시도해 주세요');

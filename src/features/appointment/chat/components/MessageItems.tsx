@@ -109,9 +109,9 @@ type MessageItemProps = {
   onRequestItemPress?: (item: ExchangeItem) => void;
   onAcceptProposal?: (messageId: string) => void;
   onRejectProposal?: (messageId: string) => void;
-  /** F-1 [교환을 완료했어요!] */
+  /** F-1 [무사히 교환했어요] */
   onCompleteExchange?: (messageId: string) => void;
-  /** F-1 [교환에 실패했어요] · [합의하에 취소했어요] */
+  /** F-1 [교환하지 못했어요] */
   onCancelExchange?: (messageId: string) => void;
 };
 
@@ -126,17 +126,16 @@ export function MessageItem({
   const mine = message.sender === 'me';
 
   if (message.type === 'completion') {
-    // 바꾸가 보내는 안내 카드라 보낸 사람과 상관없이 왼쪽
+    // 바꾸가 보내는 안내 카드라 보낸 사람과 상관없이 왼쪽, 시각은 카드 오른쪽 아래
     return (
-      <View className="w-[247px] self-start">
+      <Row mine={false} sentAt={message.sentAt}>
         <CompletionCard
           appointment={message.appointment}
           state={message.state}
           onComplete={() => onCompleteExchange?.(message.id)}
           onFail={() => onCancelExchange?.(message.id)}
-          onCancelByAgreement={() => onCancelExchange?.(message.id)}
         />
-      </View>
+      </Row>
     );
   }
 
