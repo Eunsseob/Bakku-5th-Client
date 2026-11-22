@@ -8,7 +8,6 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { CaretLeftIcon } from 'phosphor-react-native/src/icons/CaretLeft';
 import { CaretRightIcon } from 'phosphor-react-native/src/icons/CaretRight';
 import { DotsThreeVerticalIcon } from 'phosphor-react-native/src/icons/DotsThreeVertical';
-import { MapPinIcon } from 'phosphor-react-native/src/icons/MapPin';
 import { PencilSimpleIcon } from 'phosphor-react-native/src/icons/PencilSimple';
 import { TrashIcon } from 'phosphor-react-native/src/icons/Trash';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
@@ -829,35 +828,32 @@ export default function PostDetail() {
             <View style={{ height: 104, paddingHorizontal: 16, paddingTop: 8, overflow: 'hidden' }}>
               {[
                 {
+                  action: 'edit',
                   label: '수정하기',
                   icon: PencilSimpleIcon,
                   color: '#232531',
                   iconColor: '#00051E8D',
                   disabled: post.status !== 'AVAILABLE',
                   disabledMessage: postEditLockedMessage,
-                  onPress: () => {
-                    setPostMenuOpen(false);
-                    router.push({ pathname: '/post/edit/[id]', params: { id: String(post.id) } });
-                  },
                 },
                 {
+                  action: 'delete',
                   label: '삭제하기',
                   icon: TrashIcon,
                   color: '#EC0042',
                   iconColor: '#EC0042',
                   disabled: post.status !== 'AVAILABLE',
                   disabledMessage: postDeleteLockedMessage,
-                  onPress: () => void confirmDelete(),
                 },
               ].map(
                 ({
+                  action,
                   label,
                   icon: ActionIcon,
                   color,
                   iconColor,
                   disabled,
                   disabledMessage,
-                  onPress,
                 }) => (
                   <Pressable
                     key={label}
@@ -865,7 +861,14 @@ export default function PostDetail() {
                     accessibilityState={{ disabled: disabled || deleteBusy }}
                     accessibilityHint={disabled ? disabledMessage : undefined}
                     disabled={disabled || deleteBusy}
-                    onPress={onPress}
+                    onPress={() => {
+                      if (action === 'delete') {
+                        void confirmDelete();
+                        return;
+                      }
+                      setPostMenuOpen(false);
+                      router.push({ pathname: '/post/edit/[id]', params: { id: String(post.id) } });
+                    }}
                     style={{
                       height: 48,
                       flexDirection: 'row',

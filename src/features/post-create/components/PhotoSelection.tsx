@@ -1,4 +1,4 @@
-﻿import { BottomSheet } from '@/shared/components';
+import { BottomSheet } from '@/shared/components';
 import { InteractionLayer } from '@/shared/components/decoration/InteractionLayer';
 import * as ImagePicker from 'expo-image-picker';
 import { CameraIcon } from 'phosphor-react-native/src/icons/Camera';

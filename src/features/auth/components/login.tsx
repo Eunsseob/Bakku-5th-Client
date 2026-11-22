@@ -1,4 +1,4 @@
-﻿import { useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Alert } from 'react-native';
 
 import { useAuthStore } from '@/shared/api/useAuthStore';

@@ -40,6 +40,11 @@ export default function Home() {
   const screen = useRef<ComponentRef<typeof View>>(null);
   const [category, setCategory] = useState('전체');
   const [location, setLocation] = useState('전체');
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 15_000);
+    return () => clearInterval(timer);
+  }, []);
   const [searchVisible, setSearchVisible] = useState(false);
   const [query, setQuery] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
@@ -181,6 +186,7 @@ export default function Home() {
           renderItem={({ item }) => (
             <ExchangePostCard
               post={item}
+              now={now}
               accessToken={accessToken}
               onPress={() =>
                 router.push({ pathname: '/post/[id]', params: { id: String(item.id) } })

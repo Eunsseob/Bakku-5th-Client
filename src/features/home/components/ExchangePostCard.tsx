@@ -6,14 +6,15 @@ import { postImageSource } from '../api/postDetail';
 
 export default function ExchangePostCard({
   post,
+  now,
   onPress,
   accessToken,
 }: {
   post: HomePost;
+  now: number;
   onPress: () => void;
   accessToken: string | null | undefined;
 }) {
-  const now = Date.now();
   const minutes = Math.max(0, Math.floor((now - Date.parse(post.createdAt)) / 60_000));
   const remaining = Math.ceil((Date.parse(post.nowExchangeEndsAt ?? '') - now) / 60_000);
   const thumbnail =
