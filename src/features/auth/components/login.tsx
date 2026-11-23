@@ -1,4 +1,4 @@
-﻿import { useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Alert } from 'react-native';
 
 import { useAuthStore } from '@/shared/api/useAuthStore';
@@ -10,7 +10,7 @@ import LoginLayout from './LoginLayout';
 export default function Login() {
   const router = useRouter();
   const authenticate = async (provider: 'kakao' | 'naver', token: string) => {
-    const { signupToken, accessToken, deviceId } = await socialLogin(provider, token);
+    const { signupToken, accessToken, refreshToken, deviceId } = await socialLogin(provider, token);
     const signup = useSignupStore.getState();
     if (signupToken) {
       signup.reset();
@@ -19,9 +19,9 @@ export default function Login() {
       router.push('/(auth)/terms');
       return;
     }
-    if (accessToken) {
+    if (accessToken && refreshToken) {
       signup.reset();
-      useAuthStore.getState().setAccessToken(accessToken);
+      useAuthStore.getState().setTokens({ accessToken, refreshToken });
       enterMainAfterAuth();
       return;
     }

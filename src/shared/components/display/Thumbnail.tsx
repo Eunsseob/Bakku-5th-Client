@@ -1,5 +1,5 @@
 import { semantic } from '@/design-tokens';
-import { Image, type ImageSource } from 'expo-image';
+import { Image, type ImageProps, type ImageSource } from 'expo-image';
 import { ImageSquareIcon } from 'phosphor-react-native/src/icons/ImageSquare';
 import { View } from 'react-native';
 
@@ -12,6 +12,8 @@ export type ThumbnailVariant = 'outlined' | 'hollow';
 
 type ThumbnailProps = {
   source?: ImageSource | string | null;
+  /** 이미지 캐시 방식. 인증이 필요한 사진은 'none'으로 캐시를 끌 수 있다. */
+  cachePolicy?: ImageProps['cachePolicy'];
   ratio?: ThumbnailRatio;
   orientation?: ThumbnailOrientation;
   cornerStyle?: ThumbnailCornerStyle;
@@ -38,6 +40,7 @@ const CORNER: Record<ThumbnailCornerStyle, string> = {
 
 export function Thumbnail({
   source,
+  cachePolicy,
   ratio = '1:1',
   orientation = 'portrait',
   cornerStyle = 'angular',
@@ -59,7 +62,7 @@ export function Thumbnail({
       style={{ width, height }}
     >
       {source ? (
-        <Image source={source} contentFit="cover" style={{ flex: 1 }} />
+        <Image source={source} cachePolicy={cachePolicy} contentFit="cover" style={{ flex: 1 }} />
       ) : (
         <View className="flex-1 items-center justify-center bg-surface-deeper">
           <ImageSquareIcon size={iconSize} color={semantic.stroke.assistive} weight="bold" />
