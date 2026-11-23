@@ -1,7 +1,6 @@
 import { isAxiosError } from 'axios';
 
-import { apiRequest } from '@/shared/api/client';
-import { env } from '@/shared/api/env';
+import { API_URL, apiData, apiRequest, type ApiResponse } from '@/shared/api/client';
 
 export const postEditLockedMessage = '약속이 잡힌 글은 수정할 수 없어요';
 export const postDeleteLockedMessage = '교환 가능한 글만 삭제할 수 있어요.';
@@ -29,37 +28,35 @@ export type PostDetailResponse = {
 };
 
 export async function getPostDetail(postId: string, signal?: AbortSignal) {
-  const { data } = await apiRequest<{ success: boolean; data?: PostDetailResponse }>({
+  const data = await apiData<PostDetailResponse>({
     method: 'GET',
-    url: `/api/v1/posts/${encodeURIComponent(postId)}`,
+    url: `/v1/posts/${encodeURIComponent(postId)}`,
     signal,
   });
-  if (!data?.success || !data.data || String(data.data.id) !== postId) {
-    throw new Error('게시글 응답을 확인할 수 없어요.');
-  }
-  return data.data;
+  if (!data || String(data.id) !== postId) throw new Error('게시글 응답을 확인할 수 없어요.');
+  return data;
 }
 
 export async function deletePost(postId: string) {
-  const request = { method: 'DELETE', url: `/api/v1/posts/${encodeURIComponent(postId)}` };
+  const request = { method: 'DELETE', url: `/v1/posts/${encodeURIComponent(postId)}` };
   const start = Date.now();
   if (__DEV__) console.info('[post-delete] request', request);
-  const { data, status } = await apiRequest<{ success?: boolean; message?: string } | undefined>(
-    request,
-  ).catch((error: unknown) => {
-    if (__DEV__) {
-      const axiosError = isAxiosError(error) ? error : undefined;
-      console.warn('[post-delete] error', {
-        ...request,
-        status: axiosError?.response?.status,
-        code: axiosError?.code,
-        message: axiosError?.message ?? (error instanceof Error ? error.message : undefined),
-        body: axiosError?.response?.data,
-        elapsedMs: Date.now() - start,
-      });
-    }
-    throw error;
-  });
+  const { data, status } = await apiRequest<ApiResponse<null> | undefined>(request).catch(
+    (error: unknown) => {
+      if (__DEV__) {
+        const axiosError = isAxiosError(error) ? error : undefined;
+        console.warn('[post-delete] error', {
+          ...request,
+          status: axiosError?.response?.status,
+          code: axiosError?.code,
+          message: axiosError?.message ?? (error instanceof Error ? error.message : undefined),
+          body: axiosError?.response?.data,
+          elapsedMs: Date.now() - start,
+        });
+      }
+      throw error;
+    },
+  );
   if (__DEV__)
     console.info('[post-delete] response', {
       ...request,
@@ -90,7 +87,7 @@ export function postDetailError(error: unknown) {
 
 export function postImageSource(url: string, accessToken: string) {
   try {
-    const api = new URL(env.apiUrl);
+    const api = new URL(API_URL);
     let image = new URL(url, api);
     if (
       ['localhost', '127.0.0.1', '[::1]'].includes(image.hostname) &&

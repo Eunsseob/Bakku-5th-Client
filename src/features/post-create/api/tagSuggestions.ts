@@ -1,15 +1,15 @@
-import { apiRequest } from '@/shared/api/client';
+import { apiRequest, type ApiResponse } from '@/shared/api/client';
 import { isAxiosError } from 'axios';
 
 export async function getTagSuggestions(keyword: string, signal: AbortSignal) {
   const request = {
     method: 'GET',
-    url: '/api/v1/tags',
+    url: '/v1/tags',
     params: { keyword, size: 10 },
   };
   const startedAt = Date.now();
   if (__DEV__) console.info('[tag-suggestions] request', request);
-  const { data, status } = await apiRequest<{ success: boolean; data?: { tags: string[] } }>({
+  const { data, status } = await apiRequest<ApiResponse<{ tags: string[] } | undefined>>({
     ...request,
     signal,
   }).catch((error: unknown) => {

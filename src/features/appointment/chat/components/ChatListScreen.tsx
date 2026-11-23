@@ -3,10 +3,9 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
 
-import { TopNavigation, type TopNavigationTab } from '@/shared/components';
+import { EmptyState, TopNavigation, type TopNavigationTab } from '@/shared/components';
 
-import { MOCK_CHAT_ROOMS } from '../api/mockChats';
-import { useChatStore } from '../store/useChatStore';
+import { useChatRooms } from '../hooks/useChatRooms';
 import type { ExchangeStatus } from '../types';
 import { ChatListItem } from './ChatListItem';
 import { SheetMenu } from './SheetMenu';
@@ -22,16 +21,7 @@ const STATUS_OPTIONS: { key: ExchangeStatus; label: string }[] = [
 ];
 
 export function ChatListScreen() {
-  // 약속 확정 · 취소로 바뀐 글 상태(예약중 등)를 목록에도 반영한다
-  const roomDetails = useChatStore((state) => state.rooms);
-  const rooms = useMemo(
-    () =>
-      MOCK_CHAT_ROOMS.map((summary) => ({
-        ...summary,
-        status: roomDetails[summary.id]?.post.status ?? summary.status,
-      })),
-    [roomDetails],
-  );
+  const { rooms, isLoading, isError, refetch } = useChatRooms();
   const [filter, setFilter] = useState<Filter>('all');
   const [status, setStatus] = useState<ExchangeStatus | null>(null);
   const [statusSheetOpen, setStatusSheetOpen] = useState(false);
@@ -76,7 +66,14 @@ export function ChatListScreen() {
           rooms.length > 0 ? { items: tabs, selectedKey: filter, onSelect: selectTab } : undefined
         }
       />
-      {rooms.length === 0 ? (
+      {isError ? (
+        <View className="flex-1 justify-center">
+          <EmptyState
+            title="채팅 목록을 불러오지 못했어요."
+            action={{ label: '다시 시도', onPress: () => refetch() }}
+          />
+        </View>
+      ) : isLoading ? null : rooms.length === 0 ? (
         // 채팅·약속-1(비어있음): body/lg Medium 회색 문구 + 회색 버튼
         <View className="flex-1 items-center justify-center gap-4">
           <Text className="font-sans text-body-lg font-medium text-gray-300">채팅방이 없어요.</Text>

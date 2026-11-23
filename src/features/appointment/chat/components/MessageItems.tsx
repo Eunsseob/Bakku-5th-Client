@@ -125,6 +125,15 @@ export function MessageItem({
 }: MessageItemProps) {
   const mine = message.sender === 'me';
 
+  if (message.type === 'system') {
+    // 서버 시스템 메시지 · 따로 그릴 카드가 없는 카드: 가운데 회색 안내
+    return (
+      <Text className="self-center px-4 py-1 text-center font-sans text-label-sm font-normal text-gray-500">
+        {message.text}
+      </Text>
+    );
+  }
+
   if (message.type === 'completion') {
     // 바꾸가 보내는 안내 카드라 보낸 사람과 상관없이 왼쪽, 시각은 카드 오른쪽 아래
     return (

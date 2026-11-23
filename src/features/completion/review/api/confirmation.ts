@@ -1,4 +1,4 @@
-import { apiRequest, type ApiResponse } from '@/shared/api/client';
+import { apiData } from '@/shared/api/client';
 
 // Swagger exchange: F-1 교환 확인 응답 · A-2 약속 상세
 // 한 명만 답해도 처리되고, 응답은 1인 1회라 바꿀 수 없다.
@@ -38,31 +38,56 @@ export type AppointmentStatus =
   | 'NOT_MET'
   | 'CANCELED';
 
-/** 약속 (교환 확인에 쓰는 값만) */
+/** 약속 장소. 합의 시점 값으로 고정 */
+export type AppointmentPlaceResponse = {
+  name: string;
+  address: string | null;
+  lat: number;
+  lng: number;
+};
+
+/** 약속에서 교환할 물건 */
+export type AppointmentItemResponse = {
+  offeredItemId: number;
+  type: 'POST' | 'NEW';
+  /** POST 는 원본 글 현재 제목 */
+  name: string;
+  thumbnailUrl: string | null;
+};
+
+/** 약속 (A-2 약속 상세) */
 export type AppointmentResponse = {
   id: number;
   exchangeId: number;
+  /** 이 약속을 제안한 사람 */
+  proposerUserId: number;
+  /** 제안받은 사람. 수락 · 거절 권한 */
+  receiverUserId: number;
   status: AppointmentStatus;
+  timeType: 'NOW' | 'SCHEDULED';
+  scheduledAt: string | null;
+  place: AppointmentPlaceResponse | null;
+  items: AppointmentItemResponse[];
   confirmation: ConfirmationResponse | null;
+  confirmedAt: string | null;
+  createdAt: string;
 };
 
-const appointmentUrl = (appointmentId: number) => `/api/v1/appointments/${appointmentId}`;
+const appointmentUrl = (appointmentId: number) => `/v1/appointments/${appointmentId}`;
 
 /** F-1 교환 확인 응답 */
 export async function confirmExchange(appointmentId: number, body: ConfirmationRequest) {
-  const { data } = await apiRequest<ApiResponse<AppointmentResponse>>({
+  return apiData<AppointmentResponse>({
     method: 'POST',
     url: `${appointmentUrl(appointmentId)}/confirmation`,
     data: body,
   });
-  return data.data;
 }
 
 /** A-2 약속 상세 */
 export async function getAppointment(appointmentId: number) {
-  const { data } = await apiRequest<ApiResponse<AppointmentResponse>>({
+  return apiData<AppointmentResponse>({
     method: 'GET',
     url: appointmentUrl(appointmentId),
   });
-  return data.data;
 }

@@ -1,21 +1,19 @@
 import { isAxiosError } from 'axios';
 
-import { apiRequest } from '@/shared/api/client';
+import { apiData } from '@/shared/api/client';
 
 type NicknameAvailability = { available: boolean; reason?: string | null };
-type NicknameResponse = { data: NicknameAvailability } | NicknameAvailability;
 
 export async function checkNicknameAvailability(nickname: string, signal: AbortSignal) {
-  const { data: response } = await apiRequest<NicknameResponse>(
+  const result = await apiData<NicknameAvailability>(
     {
       method: 'GET',
-      url: '/api/v1/members/nickname-availability',
+      url: '/v1/members/nickname-availability',
       params: { nickname: nickname.trim() },
       signal,
     },
     { auth: false },
   );
-  const result = response && ('data' in response ? response.data : response);
   if (typeof result?.available !== 'boolean') throw new Error('Invalid nickname response');
   return result;
 }

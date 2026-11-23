@@ -1,7 +1,7 @@
 import axios, { isAxiosError } from 'axios';
 import { uuid } from 'expo';
 
-import { apiClient, apiRequest } from '@/shared/api/client';
+import { apiClient, apiData } from '@/shared/api/client';
 
 async function logNaverTokenVerification(accessToken: string) {
   try {
@@ -28,7 +28,7 @@ let deviceId: string | undefined;
 type SocialLoginResult = { signupToken?: string; accessToken?: string; refreshToken?: string };
 
 export async function socialLogin(provider: 'kakao' | 'naver', socialAccessToken: string) {
-  const url = `/api/v1/auth/${provider}/login`;
+  const url = `/v1/auth/${provider}/login`;
   const body = {
     socialAccessToken,
     ...(provider === 'naver' && { identityToken: '', authorizationCode: '' }),
@@ -42,14 +42,18 @@ export async function socialLogin(provider: 'kakao' | 'naver', socialAccessToken
   }
 
   try {
-    const response = await apiRequest<{ data: SocialLoginResult }>(
+    const result = await apiData<SocialLoginResult>(
       { method: 'POST', url, data: body },
       { auth: false },
     );
     if (__DEV__) {
-      console.info('[social-login] response', { provider, status: response.status });
+      console.info('[social-login] response', {
+        provider,
+        signup: !!result?.signupToken,
+        tokens: !!result?.accessToken && !!result.refreshToken,
+      });
     }
-    return { ...response.data?.data, deviceId: body.deviceId };
+    return { ...result, deviceId: body.deviceId };
   } catch (error) {
     if (__DEV__ && isAxiosError(error)) {
       console.info('[social-login] failure', {
