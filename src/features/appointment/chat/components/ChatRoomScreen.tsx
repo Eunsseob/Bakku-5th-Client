@@ -16,8 +16,13 @@ import {
   View,
 } from 'react-native';
 
-import { CompleteConfirmSheet, CompletionToast } from '@/features/completion/review';
-import { EmptyState, Icon, TopNavigation } from '@/shared/components';
+import {
+  CompleteConfirmSheet,
+  type ConfirmationRequest,
+  type ConfirmResult,
+  useConfirmExchange,
+} from '@/features/completion/review';
+import { EmptyState, Icon, Modal, Toast, TopNavigation } from '@/shared/components';
 
 import { useChatStore } from '../store/useChatStore';
 import type { ChatRoomDetail } from '../types';
@@ -27,7 +32,7 @@ import { ChatInput } from './ChatInput';
 import { DateDivider, MessageItem } from './MessageItems';
 import { SheetMenu, type SheetMenuOption } from './SheetMenu';
 import { ExchangeStatusBadge } from './StatusBadges';
-import { WIRE, WireDialog } from './wire';
+import { WIRE } from './wire';
 
 // E 채팅·약속-2 ~ 6 (1차): 1:1 채팅방, + 메뉴, 약속 제안 카드, 약속 수락 모달, 약속 확정(예약중)
 // F-1 (1차): 교환 완료 확인 카드, 교환 확정 시트, 성공 · 취소 카드, 토스트
@@ -71,7 +76,10 @@ function PostSummary({ post }: { post: ChatRoomDetail['post'] }) {
             </Text>
           </View>
         </View>
-        <ExchangeStatusBadge status={post.status} emphasized />
+        {/* BDS Tag 는 self-start 라서 감싸서 세로 가운데에 둔다 */}
+        <View>
+          <ExchangeStatusBadge status={post.status} />
+        </View>
       </View>
     </View>
   );
@@ -82,8 +90,8 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
   const send = useChatStore((state) => state.send);
   const accept = useChatStore((state) => state.accept);
   const reject = useChatStore((state) => state.reject);
-  const completeExchange = useChatStore((state) => state.completeExchange);
-  const cancelExchange = useChatStore((state) => state.cancelExchange);
+  const resolveCompletion = useChatStore((state) => state.resolveCompletion);
+  const confirmExchange = useConfirmExchange();
 
   const [menuOpen, setMenuOpen] = useState(false);
   /** 수락 확인 모달을 띄운 제안 카드 */
@@ -120,16 +128,50 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
     }
   };
 
+  /** 교환 확인 결과를 카드에 반영한다. 상대가 먼저 답했으면 토스트로 알린다 */
+  const applyResult = (messageId: string, { state, byPartner }: ConfirmResult) => {
+    resolveCompletion(room.id, messageId, state);
+    if (!byPartner) return;
+    setToast(
+      state === 'completed'
+        ? "상대가 먼저 '무사히 교환했어요'로 답해 완료됐어요"
+        : "상대가 먼저 '교환하지 못했어요'로 답해 취소됐어요",
+    );
+  };
+
+  /** F-1 교환 확인 응답. 서버 약속 ID 가 없는 목업 방은 화면에서만 바꾼다 */
+  const answerCompletion = (messageId: string, body: ConfirmationRequest) => {
+    const card = room.messages.find((item) => item.id === messageId);
+    if (card?.type !== 'completion') return;
+    const state = body.answer === 'DONE' ? 'completed' : 'cancelled';
+    if (card.appointmentId === undefined) {
+      applyResult(messageId, {
+        state,
+        byPartner: state === 'completed' && !!room.partnerCompleted,
+      });
+      return;
+    }
+    confirmExchange.mutate(
+      { appointmentId: card.appointmentId, body },
+      {
+        onSuccess: (result) => applyResult(messageId, result),
+        onError: () => setToast('잠시 후 다시 시도해 주세요'),
+      },
+    );
+  };
+
   const confirmComplete = () => {
     const messageId = completingId;
     setCompletingId(null);
-    if (!messageId) return;
-    try {
-      if (completeExchange(room.id, messageId) === 'alreadyCompleted') {
-        setToast('상대가 먼저 교환했어요로 답해 완료됐어요');
-      }
-    } catch {
-      setToast('잠시 후 다시 시도해 주세요');
+    if (messageId) answerCompletion(messageId, { answer: 'DONE' });
+  };
+
+  /** [교환하지 못했어요] */
+  const failExchange = (messageId: string) => {
+    const card = room.messages.find((item) => item.id === messageId);
+    // TODO: 서버는 NOT_MET 에 이유(notMetReason)가 필수다. 이유를 어떻게 받을지 정해지면 서버 방도 보낸다.
+    if (card?.type === 'completion' && card.appointmentId === undefined) {
+      answerCompletion(messageId, { answer: 'NOT_MET', notMetReason: 'OTHER' });
     }
   };
 
@@ -188,7 +230,7 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
                     onAcceptProposal={setAcceptingId}
                     onRejectProposal={(messageId) => reject(room.id, messageId)}
                     onCompleteExchange={setCompletingId}
-                    onCancelExchange={(messageId) => cancelExchange(room.id, messageId)}
+                    onCancelExchange={failExchange}
                   />
                 </Fragment>
               );
@@ -196,7 +238,7 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
           </ScrollView>
           {toast ? (
             <View pointerEvents="none" className="absolute inset-x-4 bottom-[21px]">
-              <CompletionToast message={toast} />
+              <Toast title={toast} />
             </View>
           ) : null}
         </View>
@@ -213,15 +255,18 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
         onClose={() => setMenuOpen(false)}
       />
       {/* 채팅·약속-6: 약속 수락 모달 */}
-      <WireDialog
+      <Modal
         visible={acceptingId !== null}
         title="약속을 수락할까요?"
         description="약속을 수락하면 다른 사람과 잡은 약속은 모두 취소돼요."
-        confirmLabel="확정하기"
-        onCancel={() => setAcceptingId(null)}
-        onConfirm={() => {
-          if (acceptingId) accept(room.id, acceptingId);
-          setAcceptingId(null);
+        onRequestClose={() => setAcceptingId(null)}
+        secondary={{ label: '취소', onPress: () => setAcceptingId(null) }}
+        primary={{
+          label: '확정하기',
+          onPress: () => {
+            if (acceptingId) accept(room.id, acceptingId);
+            setAcceptingId(null);
+          },
         }}
       />
       {/* F-1: 교환 확정 시트 */}

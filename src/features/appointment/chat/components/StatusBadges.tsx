@@ -1,5 +1,8 @@
+import { Tag } from '@/shared/components';
+
 import type { ExchangeStatus, ItemCondition } from '../types';
-import { WireTag } from './wire';
+
+// BDS Tag secondary sm (Figma BDS '✅F. 교환 완료' 채팅방 상단 배지: 테두리 없는 회색)
 
 const CONDITION_LABEL: Record<ItemCondition, string> = {
   sealed: '미개봉',
@@ -7,7 +10,7 @@ const CONDITION_LABEL: Record<ItemCondition, string> = {
 };
 
 export function ItemConditionBadge({ condition }: { condition: ItemCondition }) {
-  return <WireTag>{CONDITION_LABEL[condition]}</WireTag>;
+  return <Tag hierarchy="secondary">{CONDITION_LABEL[condition]}</Tag>;
 }
 
 const STATUS_LABEL: Record<ExchangeStatus, string> = {
@@ -20,17 +23,10 @@ const STATUS_LABEL: Record<ExchangeStatus, string> = {
 export function ExchangeStatusBadge({
   status,
   hideAvailable = false,
-  emphasized = false,
 }: {
   status: ExchangeStatus;
   hideAvailable?: boolean;
-  /** 채팅방 상단처럼 눈에 띄어야 하는 곳: 예약중을 진하게 */
-  emphasized?: boolean;
 }) {
   if (status === 'available' && hideAvailable) return null;
-  return (
-    <WireTag tone={emphasized && status === 'reserved' ? 'dark' : 'neutral'}>
-      {STATUS_LABEL[status]}
-    </WireTag>
-  );
+  return <Tag hierarchy="secondary">{STATUS_LABEL[status]}</Tag>;
 }
