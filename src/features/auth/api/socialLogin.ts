@@ -28,7 +28,7 @@ let deviceId: string | undefined;
 type SocialLoginResult = { signupToken?: string; accessToken?: string };
 
 export async function socialLogin(provider: 'kakao' | 'naver', socialAccessToken: string) {
-  const url = `/api/v1/auth/${provider}/login`;
+  const url = `/v1/auth/${provider}/login`;
   const body = {
     socialAccessToken,
     ...(provider === 'naver' && { identityToken: '', authorizationCode: '' }),

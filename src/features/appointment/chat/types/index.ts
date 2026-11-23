@@ -1,5 +1,7 @@
 import type { CompletionState } from '@/features/completion/review/types';
 
+import type { LeaveImpact } from '../api/chatApi';
+
 /** 교환글 진행 상태 */
 export type ExchangeStatus = 'available' | 'reserved' | 'completed';
 
@@ -12,7 +14,8 @@ export type RequestDirection = 'received' | 'sent';
 export type ExchangeItem = {
   id: string;
   name: string;
-  condition: ItemCondition;
+  /** 서버의 POST(내 교환글) 아이템은 개봉 여부를 모른다 */
+  condition?: ItemCondition;
   imageUrl?: string;
 };
 
@@ -27,7 +30,8 @@ export type ChatRoomSummary = {
   /** 알림 끔 */
   muted: boolean;
   status: ExchangeStatus;
-  direction: RequestDirection;
+  /** 서버 목록(CH-1)에는 없다 */
+  direction?: RequestDirection;
 };
 
 type MessageBase = {
@@ -58,7 +62,15 @@ export type ChatMessage =
   | (MessageBase & { type: 'text'; text: string })
   | (MessageBase & { type: 'image'; uri: string })
   | (MessageBase & { type: 'request'; items: ExchangeItem[] })
-  | (MessageBase & { type: 'proposal'; appointment: Appointment; state: ProposalState })
+  /** 서버 시스템 메시지 (가운데 회색 안내) */
+  | (MessageBase & { type: 'system'; text: string })
+  | (MessageBase & {
+      type: 'proposal';
+      appointment: Appointment;
+      state: ProposalState;
+      /** 서버 약속 ID (CARD APPOINTMENT_PROPOSAL 의 targetId). 목업 방은 없다 */
+      appointmentId?: number;
+    })
   /** F-1 약속 시각이 지나면 오는 교환 완료 확인 카드 */
   | (MessageBase & {
       type: 'completion';
@@ -87,4 +99,13 @@ export type ChatRoomDetail = {
   appointment: Appointment | null;
   /** 목업 전용: 상대가 이미 교환 완료로 답한 상태. 서버 방은 교환 확인 응답으로 안다 */
   partnerCompleted?: boolean;
+  /** 서버 방에만 있는 값 */
+  remote?: {
+    chatRoomId: number;
+    exchangeId: number;
+    notificationEnabled: boolean;
+    leaveImpact: LeaveImpact;
+    /** 입력창 대신 보여줄 안내. 입력 가능하면 null */
+    inputDisabledMessage: string | null;
+  };
 };

@@ -9,7 +9,9 @@ const CONDITION_LABEL: Record<ItemCondition, string> = {
   opened: '개봉',
 };
 
-export function ItemConditionBadge({ condition }: { condition: ItemCondition }) {
+/** 개봉 여부를 모르면 (서버 POST 아이템) 보이지 않는다 */
+export function ItemConditionBadge({ condition }: { condition?: ItemCondition }) {
+  if (!condition) return null;
   return <Tag hierarchy="secondary">{CONDITION_LABEL[condition]}</Tag>;
 }
 

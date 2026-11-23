@@ -16,7 +16,7 @@ export async function completeSignup(payload: {
       success?: boolean;
       message?: string;
       data?: { accessToken?: string };
-    }>({ method: 'POST', url: '/api/v1/auth/signup', data: payload }, { auth: false });
+    }>({ method: 'POST', url: '/v1/auth/signup', data: payload }, { auth: false });
 
     if (data?.success === false) throw new Error(data.message || '가입을 완료하지 못했어요.');
     return data?.data;

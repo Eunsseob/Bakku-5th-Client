@@ -12,7 +12,7 @@ type Term = {
 
 export async function getTerms(signal?: AbortSignal) {
   const { data } = await apiRequest<{ success: boolean; data: { content: Term[] } }>(
-    { method: 'GET', url: '/api/v1/terms', signal },
+    { method: 'GET', url: '/v1/terms', signal },
     { auth: false },
   );
   if (!data?.success || !Array.isArray(data.data?.content)) {

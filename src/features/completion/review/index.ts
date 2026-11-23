@@ -1,4 +1,11 @@
-export type { ConfirmationRequest, NotMetReason } from './api/confirmation';
+export {
+  type AppointmentResponse,
+  type AppointmentStatus,
+  type ConfirmationRequest,
+  type ConfirmationResponse,
+  getAppointment,
+  type NotMetReason,
+} from './api/confirmation';
 export { CompleteConfirmSheet } from './components/CompleteConfirmSheet';
 export { CompletionCard } from './components/CompletionCard';
 export { useConfirmExchange } from './hooks/useConfirmExchange';

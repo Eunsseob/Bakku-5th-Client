@@ -2,19 +2,24 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { ArrowsLeftRightIcon } from 'phosphor-react-native/src/icons/ArrowsLeftRight';
+import { BellIcon } from 'phosphor-react-native/src/icons/Bell';
+import { BellSlashIcon } from 'phosphor-react-native/src/icons/BellSlash';
 import { CalendarCheckIcon } from 'phosphor-react-native/src/icons/CalendarCheck';
 import { DotsThreeVerticalIcon } from 'phosphor-react-native/src/icons/DotsThreeVertical';
 import { ImageIcon } from 'phosphor-react-native/src/icons/Image';
 import { MapPinIcon } from 'phosphor-react-native/src/icons/MapPin';
+import { SignOutIcon } from 'phosphor-react-native/src/icons/SignOut';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   type ScrollViewInstance,
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   CompleteConfirmSheet,
@@ -22,9 +27,10 @@ import {
   type ConfirmResult,
   useConfirmExchange,
 } from '@/features/completion/review';
-import { EmptyState, Icon, Modal, Toast, TopNavigation } from '@/shared/components';
+import { EmptyState, Icon, Menu, Modal, Toast, TopNavigation } from '@/shared/components';
 
-import { useChatStore } from '../store/useChatStore';
+import type { LeaveImpact } from '../api/chatApi';
+import { useChatRoom } from '../hooks/useChatRoom';
 import type { ChatRoomDetail } from '../types';
 import { isDifferentDay } from '../utils/formatTime';
 import { AppointmentBanner } from './AppointmentCards';
@@ -41,12 +47,30 @@ import { WIRE } from './wire';
 const SHEET_CLOSE_MS = 350;
 /** 토스트가 떠 있는 시간 */
 const TOAST_MS = 3000;
+/** TopNavigation 높이 (h-14). ⋮ 메뉴를 그 아래에 띄운다 */
+const HEADER_HEIGHT = 56;
 
-function plusMenu(reserved: boolean): SheetMenuOption[] {
+/** 서버 요청이 실패했을 때 */
+const RETRY_MESSAGE = '잠시 후 다시 시도해 주세요';
+
+/** CH-7 나가기 확인 팝업: CH-2 leaveImpact 로 고른다 */
+const LEAVE_DESCRIPTION: Record<LeaveImpact, string> = {
+  NONE: '나간 채팅방은 다시 들어올 수 없어요.',
+  UNILATERAL_CANCEL: '나가면 확정된 약속이 취소돼요. 나간 채팅방은 다시 들어올 수 없어요.',
+  UNILATERAL_CANCEL_IMMINENT:
+    '약속이 얼마 남지 않아 지금 나가면 매너 지표에 반영돼요. 나간 채팅방은 다시 들어올 수 없어요.',
+};
+
+/** appointmentDisabled: 약속이 확정(예약중)됐거나 교환이 끝났거나, 서버 약속 제안(A-1)이 아직 연결 전 */
+function plusMenu(appointmentDisabled: boolean): SheetMenuOption[] {
   return [
     { key: 'photo', label: '사진', icon: ImageIcon },
-    // 약속이 확정(예약중)됐거나 교환이 끝나면 새 약속을 잡을 수 없다
-    { key: 'appointment', label: '약속 잡기', icon: CalendarCheckIcon, disabled: reserved },
+    {
+      key: 'appointment',
+      label: '약속 잡기',
+      icon: CalendarCheckIcon,
+      disabled: appointmentDisabled,
+    },
     { key: 'place', label: '장소 보내기 (2차)', icon: MapPinIcon, disabled: true },
   ];
 }
@@ -86,14 +110,15 @@ function PostSummary({ post }: { post: ChatRoomDetail['post'] }) {
 }
 
 export function ChatRoomScreen({ roomId }: { roomId: string }) {
-  const room = useChatStore((state) => state.rooms[roomId]);
-  const send = useChatStore((state) => state.send);
-  const accept = useChatStore((state) => state.accept);
-  const reject = useChatStore((state) => state.reject);
-  const resolveCompletion = useChatStore((state) => state.resolveCompletion);
+  const insets = useSafeAreaInsets();
+  const chat = useChatRoom(roomId);
+  const { room } = chat;
   const confirmExchange = useConfirmExchange();
 
   const [menuOpen, setMenuOpen] = useState(false);
+  /** 상단 ⋮ 메뉴 (알림 · 나가기) */
+  const [roomMenuOpen, setRoomMenuOpen] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
   /** 수락 확인 모달을 띄운 제안 카드 */
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   /** 교환 확정 시트를 띄운 교환 완료 확인 카드 */
@@ -112,25 +137,34 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
       <View className="flex-1 bg-surface-standard">
         <TopNavigation type="screen" onBack={() => router.back()} />
         <View className="flex-1 justify-center">
-          <EmptyState title="채팅방을 찾을 수 없어요." />
+          {chat.isLoading ? null : chat.isError ? (
+            <EmptyState
+              title="채팅방을 불러오지 못했어요."
+              action={{ label: '다시 시도', onPress: () => chat.refetch() }}
+            />
+          ) : (
+            <EmptyState title="채팅방을 찾을 수 없어요." />
+          )}
         </View>
       </View>
     );
   }
+
+  const showError = () => setToast(RETRY_MESSAGE);
 
   const pickPhoto = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       quality: 0.8,
     });
-    if (!result.canceled && result.assets[0]) {
-      send(room.id, { type: 'image', uri: result.assets[0].uri });
+    if (!result.canceled && result.assets[0] && !chat.sendImage(result.assets[0].uri)) {
+      setToast('사진 보내기는 준비 중이에요');
     }
   };
 
   /** 교환 확인 결과를 카드에 반영한다. 상대가 먼저 답했으면 토스트로 알린다 */
   const applyResult = (messageId: string, { state, byPartner }: ConfirmResult) => {
-    resolveCompletion(room.id, messageId, state);
+    chat.resolveCompletion(messageId, state);
     if (!byPartner) return;
     setToast(
       state === 'completed'
@@ -155,7 +189,7 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
       { appointmentId: card.appointmentId, body },
       {
         onSuccess: (result) => applyResult(messageId, result),
-        onError: () => setToast('잠시 후 다시 시도해 주세요'),
+        onError: showError,
       },
     );
   };
@@ -174,6 +208,32 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
       answerCompletion(messageId, { answer: 'NOT_MET', notMetReason: 'OTHER' });
     }
   };
+
+  const selectRoomMenu = async (key: string) => {
+    setRoomMenuOpen(false);
+    if (key === 'leave') {
+      setLeaveOpen(true);
+      return;
+    }
+    try {
+      await chat.setNotification(key === 'notificationOn');
+    } catch {
+      showError();
+    }
+  };
+
+  const leaveRoom = async () => {
+    setLeaveOpen(false);
+    try {
+      await chat.leave();
+      router.back();
+    } catch {
+      showError();
+    }
+  };
+
+  const notificationEnabled = room.remote?.notificationEnabled ?? true;
+  const inputDisabledMessage = room.remote?.inputDisabledMessage;
 
   const selectMenu = (key: string) => {
     setMenuOpen(false);
@@ -202,7 +262,14 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
         description={`교환 ${room.partner.exchangeCount}회`}
         onBack={() => router.back()}
         actions={[
-          { icon: DotsThreeVerticalIcon, accessibilityLabel: '채팅방 메뉴', onPress: () => {} },
+          {
+            icon: DotsThreeVerticalIcon,
+            accessibilityLabel: '채팅방 메뉴',
+            // 알림 끄기 · 나가기는 서버 방만 (목업은 그대로)
+            onPress: () => {
+              if (room.remote) setRoomMenuOpen(true);
+            },
+          },
         ]}
       />
       <PostSummary post={room.post} />
@@ -228,7 +295,9 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
                   <MessageItem
                     message={message}
                     onAcceptProposal={setAcceptingId}
-                    onRejectProposal={(messageId) => reject(room.id, messageId)}
+                    onRejectProposal={(messageId) => {
+                      Promise.resolve(chat.reject(messageId)).catch(showError);
+                    }}
                     onCompleteExchange={setCompletingId}
                     onCancelExchange={failExchange}
                   />
@@ -242,15 +311,27 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
             </View>
           ) : null}
         </View>
-        <ChatInput
-          onSend={(text) => send(room.id, { type: 'text', text })}
-          onPlusPress={() => setMenuOpen(true)}
-        />
+        {inputDisabledMessage ? (
+          // CH-2 inputDisabledReason: 입력창 대신 안내
+          <View className="bg-white px-4 pt-3" style={{ paddingBottom: insets.bottom + 12 }}>
+            <Text className="text-center font-sans text-label-md font-normal text-object-alternative">
+              {inputDisabledMessage}
+            </Text>
+          </View>
+        ) : (
+          <ChatInput
+            onSend={(text) => {
+              Promise.resolve(chat.sendText(text)).catch(showError);
+            }}
+            onPlusPress={() => setMenuOpen(true)}
+          />
+        )}
       </KeyboardAvoidingView>
 
       <SheetMenu
         visible={menuOpen}
-        options={plusMenu(room.post.status !== 'available')}
+        // TODO: 서버 방의 약속 잡기는 A-1 약속 제안이 연결되면 연다
+        options={plusMenu(room.post.status !== 'available' || chat.remote)}
         onSelect={selectMenu}
         onClose={() => setMenuOpen(false)}
       />
@@ -264,10 +345,56 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
         primary={{
           label: '확정하기',
           onPress: () => {
-            if (acceptingId) accept(room.id, acceptingId);
+            if (acceptingId) Promise.resolve(chat.accept(acceptingId)).catch(showError);
             setAcceptingId(null);
           },
         }}
+      />
+      {/* CH-6 알림 끄기 · 켜기, CH-7 나가기 */}
+      {roomMenuOpen ? (
+        // BDS Menu: ⋮ 아래에 뜨는 메뉴 카드. 바깥을 누르면 닫힌다
+        <View className="absolute inset-0">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="메뉴 닫기"
+            onPress={() => setRoomMenuOpen(false)}
+            className="absolute inset-0"
+          />
+          <View className="absolute right-4" style={{ top: insets.top + HEADER_HEIGHT }}>
+            <Menu
+              items={[
+                notificationEnabled
+                  ? {
+                      key: 'notificationOff',
+                      label: '알림 끄기',
+                      leadingIcon: BellSlashIcon,
+                      onPress: () => selectRoomMenu('notificationOff'),
+                    }
+                  : {
+                      key: 'notificationOn',
+                      label: '알림 켜기',
+                      leadingIcon: BellIcon,
+                      onPress: () => selectRoomMenu('notificationOn'),
+                    },
+                {
+                  key: 'leave',
+                  label: '채팅방 나가기',
+                  leadingIcon: SignOutIcon,
+                  destructive: true,
+                  onPress: () => selectRoomMenu('leave'),
+                },
+              ]}
+            />
+          </View>
+        </View>
+      ) : null}
+      <Modal
+        visible={leaveOpen}
+        title="채팅방을 나갈까요?"
+        description={LEAVE_DESCRIPTION[room.remote?.leaveImpact ?? 'NONE']}
+        onRequestClose={() => setLeaveOpen(false)}
+        secondary={{ label: '취소', onPress: () => setLeaveOpen(false) }}
+        primary={{ label: '나가기', onPress: leaveRoom }}
       />
       {/* F-1: 교환 확정 시트 */}
       <CompleteConfirmSheet

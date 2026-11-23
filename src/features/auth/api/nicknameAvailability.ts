@@ -9,7 +9,7 @@ export async function checkNicknameAvailability(nickname: string, signal: AbortS
   const { data: response } = await apiRequest<NicknameResponse>(
     {
       method: 'GET',
-      url: '/api/v1/members/nickname-availability',
+      url: '/v1/members/nickname-availability',
       params: { nickname: nickname.trim() },
       signal,
     },
