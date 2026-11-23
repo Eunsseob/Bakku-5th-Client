@@ -6,7 +6,6 @@ import {
   type InternalAxiosRequestConfig,
 } from 'axios';
 
-import { env } from './env';
 import { useAuthStore, type AuthTokens } from './useAuthStore';
 
 type AuthRequestConfig = InternalAxiosRequestConfig & {
@@ -49,10 +48,9 @@ function logApiFailure(
       : undefined,
   });
 }
-import { useAuthStore } from './useAuthStore';
 
 /** 서버 주소. .env 의 EXPO_PUBLIC_API_URL */
-const API_URL = process.env.EXPO_PUBLIC_API_URL?.trim() || '';
+export const API_URL = process.env.EXPO_PUBLIC_API_URL?.trim() || '';
 /** 모든 API 의 공통 앞부분. 버전은 각 경로에 둔다 (예: /v1/chat-rooms) */
 const API_BASE_URL = `${API_URL}/api`;
 
@@ -84,8 +82,8 @@ async function refreshTokens(sessionId: number, refreshToken: string) {
   if (refreshInFlight?.sessionId === sessionId) return refreshInFlight.promise;
 
   const promise = (async () => {
-    const { data } = await apiClient.post<{ success: boolean; data?: AuthTokens }>(
-      '/api/v1/auth/token/refresh',
+    const { data } = await apiClient.post<ApiResponse<AuthTokens | undefined>>(
+      '/v1/auth/token/refresh',
       { refreshToken },
       { headers: { Authorization: false } },
     );
@@ -164,10 +162,11 @@ export function apiRequest<T>(config: AxiosRequestConfig, { auth = true } = {}) 
   return apiClient.request<T>({ ...config, headers });
 }
 
-/** 공통 응답(ApiResponse)에서 data 만 꺼낸다 */
+/** 공통 응답(ApiResponse)에서 data 만 꺼낸다. success 가 false 면 서버 메시지로 에러 */
 export async function apiData<T>(config: AxiosRequestConfig, options?: { auth?: boolean }) {
   const { data } = await apiRequest<ApiResponse<T>>(config, options);
-  return data.data;
+  if (data?.success === false) throw new Error(data.message || '요청을 처리하지 못했어요.');
+  return data?.data;
 }
 
 /** 서버 공통 응답 형태 (Swagger ResponseBody) */

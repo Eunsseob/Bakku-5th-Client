@@ -1,4 +1,4 @@
-import { apiRequest } from '@/shared/api/client';
+import { apiData } from '@/shared/api/client';
 
 export type Agreement = { termsType: string; version: string; agreed: boolean };
 
@@ -11,12 +11,10 @@ type Term = {
 };
 
 export async function getTerms(signal?: AbortSignal) {
-  const { data } = await apiRequest<{ success: boolean; data: { content: Term[] } }>(
+  const data = await apiData<{ content: Term[] }>(
     { method: 'GET', url: '/v1/terms', signal },
     { auth: false },
   );
-  if (!data?.success || !Array.isArray(data.data?.content)) {
-    throw new Error('약관 목록을 불러오지 못했어요.');
-  }
-  return data.data.content;
+  if (!Array.isArray(data?.content)) throw new Error('약관 목록을 불러오지 못했어요.');
+  return data.content;
 }

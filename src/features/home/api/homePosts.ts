@@ -1,4 +1,4 @@
-import { apiRequest } from '@/shared/api/client';
+import { apiData } from '@/shared/api/client';
 
 export const homePostsKey = ['home-posts'] as const;
 
@@ -23,9 +23,9 @@ export async function getHomePosts(
   signal: AbortSignal,
 ) {
   const { keyword, category, nowExchange } = filters;
-  const { data } = await apiRequest<{ success: boolean; data?: HomePostsPage }>({
+  const data = await apiData<HomePostsPage>({
     method: 'GET',
-    url: keyword ? '/api/v1/posts/search' : '/api/v1/posts',
+    url: keyword ? '/v1/posts/search' : '/v1/posts',
     params: {
       category,
       keyword,
@@ -36,8 +36,6 @@ export async function getHomePosts(
     },
     signal,
   });
-  if (!data?.success || !Array.isArray(data.data?.content)) {
-    throw new Error('교환 글 목록을 확인할 수 없어요.');
-  }
-  return data.data;
+  if (!Array.isArray(data?.content)) throw new Error('교환 글 목록을 확인할 수 없어요.');
+  return data;
 }

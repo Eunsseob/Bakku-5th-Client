@@ -1,7 +1,7 @@
 import { isAxiosError, type AxiosRequestConfig } from 'axios';
 import { Image, Platform } from 'react-native';
 
-import { apiRequest } from '@/shared/api/client';
+import { apiRequest, type ApiResponse } from '@/shared/api/client';
 
 export const postCategories = {
   캐릭터: 'CHARACTER',
@@ -25,8 +25,6 @@ export type CreatePostBody = {
 };
 
 export type UpdatePostBody = Omit<CreatePostBody, 'nowExchangeMinutes'>;
-
-type ApiResponse<T> = { success: boolean; message?: string; data?: T };
 
 const maxPhotoEdge = 1600;
 const maxPhotoBytes = 10_000_000;
@@ -121,7 +119,7 @@ export async function uploadPostImages(photos: string[]) {
     const { data } = await requestPostApi<ApiResponse<{ uploads: { key: string }[] }>>(
       {
         method: 'POST',
-        url: '/api/v1/images',
+        url: '/v1/images',
         data: form,
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 60_000,
@@ -154,7 +152,7 @@ export async function createPost(body: CreatePostBody, idempotencyKey: string) {
   const { data } = await requestPostApi<ApiResponse<{ id: number }>>(
     {
       method: 'POST',
-      url: '/api/v1/posts',
+      url: '/v1/posts',
       headers: { 'Idempotency-Key': idempotencyKey },
       data: body,
     },
@@ -169,7 +167,7 @@ export async function createPost(body: CreatePostBody, idempotencyKey: string) {
 
 export async function updatePost(id: number, body: UpdatePostBody) {
   const { status, data } = await requestPostApi<ApiResponse<unknown>>(
-    { method: 'PUT', url: `/api/v1/posts/${id}`, data: body },
+    { method: 'PUT', url: `/v1/posts/${id}`, data: body },
     body,
   );
   if (status !== 204 && !data?.success) {

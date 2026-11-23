@@ -45,13 +45,5 @@ export function CompleteConfirmSheet({ visible, onCancel, onConfirm }: CompleteC
         </Pressable>
       </View>
     </BottomSheet>
-      title="한 쪽만 확정해도 교환완료 처리돼요"
-      description={
-        '한 명만 교환 완료 처리해도 교환이 확정됩니다.\n확정은 취소할 수 없으니 주의해주세요.'
-      }
-      closeButtonVisible
-      primary={{ label: '교환 확정', onPress: onConfirm }}
-      secondary={{ label: '취소', onPress: onCancel }}
-    />
   );
 }
