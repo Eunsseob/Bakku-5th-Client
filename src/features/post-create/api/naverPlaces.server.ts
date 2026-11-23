@@ -1,3 +1,5 @@
+import { getExchangeRegion } from '../utils/exchangeRegion';
+
 type NaverPlace = {
   title: string;
   address: string;
@@ -35,6 +37,7 @@ export function normalizeNaverPlaces(items: NaverPlace[]) {
         id: `${item.mapx}-${item.mapy}-${plainText(item.title)}`,
         name: plainText(item.title),
         address: plainText(item.roadAddress || item.address),
+        regionName: getExchangeRegion(plainText(item.address || item.roadAddress)),
         category: plainText(item.category).split('>').filter(Boolean).join(' · '),
         latitude,
         longitude,

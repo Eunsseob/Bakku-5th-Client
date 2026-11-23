@@ -2,6 +2,7 @@ export type PlaceResult = {
   id: string;
   name: string;
   address: string;
+  regionName?: string;
   category: string;
   latitude: number;
   longitude: number;

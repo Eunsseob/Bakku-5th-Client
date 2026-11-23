@@ -1,6 +1,8 @@
 import { Button, Divider, Icon, TopNavigation } from '@/shared/components';
+import { useAuthStore } from '@/shared/api/useAuthStore';
+import { useQuery } from '@tanstack/react-query';
 import { router, Stack } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -13,28 +15,61 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { XIcon } from 'phosphor-react-native/src/icons/X';
 import { XCircleIcon } from 'phosphor-react-native/src/icons/XCircle';
-import { useExchangeStore } from '@/features/home/store/useExchangeStore';
+import { getTagSuggestions } from '../api/tagSuggestions';
 import { useWriteTagsStore } from '../store/useWriteTagsStore';
 
-const suggestedTags = ['치이카와', '하치와레', '우사기', '포토카드', '피규어', '키링'];
+const maxTagLength = 20;
+const tagLengthMessage = '태그는 공백과 앞의 #을 제외하고 20자까지 입력할 수 있어요.';
 
-export default function TagSelection() {
+export default function TagSelection({ editing = false }: { editing?: boolean }) {
   const insets = useSafeAreaInsets();
-  const [tags, setTags] = useState(() => useWriteTagsStore.getState().tags);
-  const posts = useExchangeStore((state) => state.posts);
+  const [tags, setTags] = useState(() => {
+    const draft = useWriteTagsStore.getState();
+    return editing ? draft.editTags : draft.tags;
+  });
+  const accessToken = useAuthStore((state) => state.accessToken);
+  const sessionId = useAuthStore((state) => state.sessionId);
   const [query, setQuery] = useState('');
   const [focused, setFocused] = useState(false);
   const [message, setMessage] = useState('');
-  const value = query.normalize('NFC').replace(/[#\s]/g, '');
-  const candidates = [...new Set([...suggestedTags, ...posts.flatMap((post) => post.tags ?? [])])];
-  const results = value
-    ? [
-        ...new Set([
-          value,
-          ...candidates.filter((tag) => tag.toLowerCase().includes(value.toLowerCase())),
-        ]),
-      ].filter((tag) => !tags.some((selected) => selected.toLowerCase() === tag.toLowerCase()))
-    : [];
+  const [debouncedKeyword, setDebouncedKeyword] = useState('');
+  const value = query.normalize('NFC').replace(/\s/g, '').replace(/^#+/, '');
+  const tooLong = [...value].length > maxTagLength;
+  useEffect(() => {
+    if (!value || tooLong) return;
+    const timer = setTimeout(() => setDebouncedKeyword(value), 250);
+    return () => clearTimeout(timer);
+  }, [tooLong, value]);
+  const canSuggest = !!accessToken && !!value && !tooLong && value === debouncedKeyword;
+  const suggestions = useQuery({
+    queryKey: ['tag-suggestions', sessionId, value],
+    queryFn: ({ signal }) => getTagSuggestions(value, signal),
+    enabled: canSuggest,
+    retry: false,
+  });
+  const { fetchStatus, status: queryStatus, data: suggestedTags } = suggestions;
+  useEffect(() => {
+    if (!__DEV__ || !value) return;
+    console.info('[tag-suggestions] query state', {
+      keyword: value,
+      ready: canSuggest,
+      hasAccessToken: !!accessToken,
+      tooLong,
+      fetchStatus,
+      status: queryStatus,
+      receivedCount: suggestedTags?.length,
+    });
+  }, [value, canSuggest, accessToken, tooLong, fetchStatus, queryStatus, suggestedTags]);
+  const seen = new Set(tags.map((tag) => tag.toLowerCase()));
+  const results =
+    value && !tooLong
+      ? [...(canSuggest ? (suggestions.data ?? []) : []), value].filter((tag) => {
+          const key = tag.toLowerCase();
+          if (seen.has(key) || [...tag].length > maxTagLength) return false;
+          seen.add(key);
+          return true;
+        })
+      : [];
   const addTag = (tag: string) => {
     if (tags.some((selected) => selected.toLowerCase() === tag.toLowerCase())) return;
     if (tags.length >= 5) {
@@ -46,6 +81,7 @@ export default function TagSelection() {
     setMessage('');
   };
   const finish = () => {
+    if (tooLong) return;
     let selectedTags = tags;
     if (value && !tags.some((tag) => tag.toLowerCase() === value.toLowerCase())) {
       if (tags.length >= 5) {
@@ -54,7 +90,9 @@ export default function TagSelection() {
       }
       selectedTags = [...tags, value];
     }
-    useWriteTagsStore.getState().setTags(selectedTags);
+    const draft = useWriteTagsStore.getState();
+    if (editing) draft.setEditTags(selectedTags);
+    else draft.setTags(selectedTags);
     router.back();
   };
 
@@ -95,7 +133,7 @@ export default function TagSelection() {
             returnKeyType="done"
             submitBehavior="submit"
             onSubmitEditing={() => {
-              if (value) addTag(value);
+              if (value && !tooLong) addTag(value);
             }}
           />
           {!!query && (
@@ -160,12 +198,17 @@ export default function TagSelection() {
             ))}
           </View>
         )}
-        {!!message && (
+        {(tooLong || !!message) && (
           <Text
             accessibilityRole="alert"
             className="mx-4 mt-3 font-sans text-[13px] leading-5 text-red-600"
           >
-            {message}
+            {tooLong ? tagLengthMessage : message}
+          </Text>
+        )}
+        {canSuggest && suggestions.isError && (
+          <Text className="mx-4 mt-3 font-sans text-[13px] leading-5 text-[#6A7282]">
+            추천 태그를 불러오지 못했어요. 입력한 태그는 추가할 수 있어요.
           </Text>
         )}
         {results.length > 0 && (
@@ -186,11 +229,17 @@ export default function TagSelection() {
                     style={{ includeFontPadding: false }}
                     className="font-sans text-[16px] leading-[22px] tracking-[-0.16px] text-[#99A1AF]"
                   >
-                    #{tag.slice(0, matchIndex)}
-                    <Text style={{ color: '#030712' }}>
-                      {tag.slice(matchIndex, matchIndex + value.length)}
-                    </Text>
-                    {tag.slice(matchIndex + value.length)}
+                    {matchIndex < 0 ? (
+                      `#${tag}`
+                    ) : (
+                      <>
+                        #{tag.slice(0, matchIndex)}
+                        <Text style={{ color: '#030712' }}>
+                          {tag.slice(matchIndex, matchIndex + value.length)}
+                        </Text>
+                        {tag.slice(matchIndex + value.length)}
+                      </>
+                    )}
                   </Text>
                 </Pressable>
               );

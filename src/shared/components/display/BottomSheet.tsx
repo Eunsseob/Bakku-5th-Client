@@ -1,6 +1,6 @@
 import { XIcon } from 'phosphor-react-native/src/icons/X';
 import type { ReactNode } from 'react';
-import { Pressable, Modal as RNModal, Text, View } from 'react-native';
+import { Pressable, Modal as RNModal, Text, View, type ModalProps } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '../action/Button';
@@ -17,6 +17,10 @@ type BottomSheetProps = {
   visible: boolean;
   /** 뒤로가기 · 배경 · 닫기 버튼으로 닫을 때 */
   onRequestClose: () => void;
+  /** iOS에서 닫기 애니메이션이 끝나면 호출 */
+  onDismiss?: ModalProps['onDismiss'];
+  minimumBottomInset?: number;
+  className?: string;
   title?: string;
   description?: string;
   /** 위쪽 손잡이 */
@@ -33,6 +37,9 @@ type BottomSheetProps = {
 export function BottomSheet({
   visible,
   onRequestClose,
+  onDismiss,
+  minimumBottomInset = 0,
+  className = 'rounded-t-24 bg-surface-standard',
   title,
   description,
   handleVisible = true,
@@ -51,6 +58,7 @@ export function BottomSheet({
       animationType="fade"
       statusBarTranslucent
       onRequestClose={onRequestClose}
+      onDismiss={onDismiss}
     >
       <View className="flex-1 justify-end">
         <Pressable
@@ -61,8 +69,8 @@ export function BottomSheet({
         />
         <View
           accessibilityViewIsModal
-          className="rounded-t-24 bg-surface-standard"
-          style={{ paddingBottom: insets.bottom }}
+          className={className}
+          style={{ paddingBottom: Math.max(insets.bottom, minimumBottomInset) }}
         >
           {handleVisible ? (
             <View className="h-3 items-center justify-end">

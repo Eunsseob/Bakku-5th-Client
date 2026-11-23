@@ -12,6 +12,7 @@ type Props = {
   mode: string;
   query: string;
   searchVisible: boolean;
+  searching: boolean;
   onRegionPress: (anchor: MenuAnchor) => void;
   onSearchPress: () => void;
   onNotificationsPress: () => void;
@@ -30,11 +31,14 @@ export default function HomeHeader(props: Props) {
         <TopNavigation
           type="home"
           safeArea={false}
-          title={props.location === '전체' ? '모든 지역' : props.location}
-          onTitlePress={() =>
-            regionAnchor.current?.measureInWindow((x, y, width, height) =>
-              props.onRegionPress({ x: x + 16, y, width, height }),
-            )
+          title={props.searching || props.location === '전체' ? '모든 지역' : props.location}
+          onTitlePress={
+            props.searching
+              ? undefined
+              : () =>
+                  regionAnchor.current?.measureInWindow((x, y, width, height) =>
+                    props.onRegionPress({ x: x + 16, y, width, height }),
+                  )
           }
           actions={[
             {
@@ -62,22 +66,24 @@ export default function HomeHeader(props: Props) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, gap: 8 }}
       >
-        <View ref={modeAnchor} collapsable={false}>
-          <Chip
-            size="lg"
-            hierarchy="primary"
-            trailingIconVisible
-            accessibilityState={{ expanded: props.modeExpanded }}
-            onPress={() =>
-              modeAnchor.current?.measureInWindow((x, y, width, height) =>
-                props.onModePress({ x, y, width, height }),
-              )
-            }
-            className="!h-10 !bg-[#364153] !px-3.5"
-          >
-            {props.mode}
-          </Chip>
-        </View>
+        {!props.searching && (
+          <View ref={modeAnchor} collapsable={false}>
+            <Chip
+              size="lg"
+              hierarchy="primary"
+              trailingIconVisible
+              accessibilityState={{ expanded: props.modeExpanded }}
+              onPress={() =>
+                modeAnchor.current?.measureInWindow((x, y, width, height) =>
+                  props.onModePress({ x, y, width, height }),
+                )
+              }
+              className="!h-10 !bg-[#364153] !px-3.5"
+            >
+              {props.mode}
+            </Chip>
+          </View>
+        )}
         {['캐릭터', '아이돌', '스포츠', '기타'].map((label) => {
           const selected = props.category === label;
           return (

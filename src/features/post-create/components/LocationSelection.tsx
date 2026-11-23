@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getQuickCurrentLocation } from '@/features/home/utils/currentLocation';
 import { searchPlaces } from '../api/placeSearch';
+import { getExchangeRegion } from '../utils/exchangeRegion';
 import MapCanvas, { type MapPoint } from '@/features/home/components/MapCanvas';
 import LocationSearch from './LocationSearch';
 
@@ -33,14 +34,16 @@ type LocationSelectionProps = {
   initialLocation: string;
   initialDetail: string;
   initialPoint?: MapPoint;
+  initialRegionName: string;
   onClose: () => void;
-  onConfirm: (location: string, detail: string, point?: MapPoint) => void;
+  onConfirm: (location: string, regionName: string, point: MapPoint) => void;
 };
 
 export default function LocationSelection({
   initialLocation,
   initialDetail,
   initialPoint,
+  initialRegionName,
   onClose,
   onConfirm,
 }: LocationSelectionProps) {
@@ -60,6 +63,7 @@ export default function LocationSelection({
   const [address, setAddress] = useState({
     primary: initialLocation,
     secondary: initialDetail,
+    regionName: initialRegionName,
     ready: !!initialPoint,
   });
   const [addressPending, setAddressPending] = useState(!initialPoint);
@@ -69,9 +73,10 @@ export default function LocationSelection({
     longitude: number;
     name: string;
     address: string;
+    regionName?: string;
   } | null>(
     initialPoint && initialLocation
-      ? { ...initialPoint, name: initialLocation, address: '' }
+      ? { ...initialPoint, name: initialLocation, address: '', regionName: initialRegionName }
       : null,
   );
   const searchRequest = useRef(0);
@@ -117,7 +122,12 @@ export default function LocationSelection({
     const timer = setTimeout(() => {
       void (async () => {
         const coordinateText = `${point.latitude.toFixed(5)}, ${point.longitude.toFixed(5)}`;
-        let next = { primary: '지도에서 선택한 위치', secondary: coordinateText, ready: true };
+        let next = {
+          primary: '지도에서 선택한 위치',
+          secondary: coordinateText,
+          regionName: '',
+          ready: true,
+        };
         try {
           if (Platform.OS !== 'web') {
             const permission = await Location.requestForegroundPermissionsAsync();
@@ -135,6 +145,9 @@ export default function LocationSelection({
                   primary:
                     [region, result.name || street].filter(Boolean).join(' ') || coordinateText,
                   secondary: [region, street].filter(Boolean).join(' ') || coordinateText,
+                  regionName: getExchangeRegion(
+                    [region, result.subregion].filter(Boolean).join(' '),
+                  ),
                   ready: true,
                 };
               }
@@ -152,6 +165,8 @@ export default function LocationSelection({
           ) {
             next.primary = place.name;
             if (place.address) next.secondary = place.address;
+            next.regionName =
+              place.regionName || next.regionName || getExchangeRegion(place.address);
           }
           setAddress(next);
           setAddressPending(false);
@@ -402,7 +417,13 @@ export default function LocationSelection({
             accessibilityRole="button"
             accessibilityState={{ disabled: !canConfirm }}
             disabled={!canConfirm}
-            onPress={() => onConfirm(address.primary, address.secondary, point)}
+            onPress={() => {
+              if (!address.regionName) {
+                Alert.alert('지역을 확인할 수 없어요', '주소가 있는 장소를 검색해 선택해 주세요.');
+                return;
+              }
+              onConfirm(address.primary, address.regionName, point);
+            }}
             style={{
               height: 52,
               flexShrink: 0,
@@ -446,7 +467,12 @@ export default function LocationSelection({
               setSelectedHub('');
               selectPoint({ latitude: place.latitude, longitude: place.longitude });
               if (point.latitude === place.latitude && point.longitude === place.longitude) {
-                setAddress({ primary: place.name, secondary: place.address, ready: true });
+                setAddress({
+                  primary: place.name,
+                  secondary: place.address,
+                  regionName: place.regionName || getExchangeRegion(place.address),
+                  ready: true,
+                });
                 setAddressPending(false);
               }
               setSearchOpen(false);

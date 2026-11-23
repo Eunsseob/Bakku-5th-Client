@@ -1,29 +1,36 @@
 import { Button, Chip, Icon, TextField, Thumbnail, TopNavigation } from '@/shared/components';
 import { CaretRightIcon } from 'phosphor-react-native/src/icons/CaretRight';
 import { XIcon } from 'phosphor-react-native/src/icons/X';
-import { useState } from 'react';
+import { useRef, useState, type ComponentProps, type ComponentRef } from 'react';
 import {
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
 import PhotoSelection from './PhotoSelection';
+import { postCategories, type PostCategoryLabel } from '../api/createPost';
+
+import ExchangeProgress, { type ExchangeProgressValue } from './ExchangeProgress';
+import { useValidationScroll } from '../utils/useValidationScroll';
 
 type ExchangeGoodsProps = {
+  editing?: boolean;
+  progress: ExchangeProgressValue;
   tags: string[];
   onTagsPress: () => void;
   photos: string[];
+  getPhotoSource?: (photo: string) => ComponentProps<typeof Thumbnail>['source'];
   onPhotosChange: (photos: string[]) => void;
   title: string;
   onTitleChange: (title: string) => void;
-  category: string;
-  onCategoryChange: (category: string) => void;
+  category: PostCategoryLabel | '';
+  onCategoryChange: (category: PostCategoryLabel) => void;
   condition: string;
   onConditionChange: (condition: string) => void;
   description: string;
@@ -36,8 +43,30 @@ type ExchangeGoodsProps = {
 export default function ExchangeGoods(props: ExchangeGoodsProps) {
   const insets = useSafeAreaInsets();
   const [photoPickerOpen, setPhotoPickerOpen] = useState(false);
-  const valid =
-    props.photos.length > 0 && !!props.title.trim() && !!props.category && !!props.condition;
+  const [submitted, setSubmitted] = useState(false);
+  const [titleTouched, setTitleTouched] = useState(false);
+  const titleRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const { scrollRef, fieldLayout, focusError } = useValidationScroll<
+    'photos' | 'title' | 'category' | 'condition'
+  >();
+  const titleLength = props.title.trim().length;
+  const photoError = props.photos.length ? undefined : '제품 사진을 한 장 이상 추가해 주세요.';
+  const titleError =
+    titleLength === 0
+      ? '제품명을 입력해 주세요.'
+      : titleLength < 2 || titleLength > 40
+        ? '제품명은 2~40자로 입력해 주세요.'
+        : undefined;
+  const categoryError = props.category ? undefined : '카테고리를 선택해 주세요.';
+  const conditionError = props.condition ? undefined : '제품 상태를 선택해 주세요.';
+  const next = () => {
+    setSubmitted(true);
+    if (photoError) focusError('photos', photoError);
+    else if (titleError) focusError('title', titleError, titleRef.current);
+    else if (categoryError) focusError('category', categoryError);
+    else if (conditionError) focusError('condition', conditionError);
+    else props.onNext();
+  };
 
   return (
     <KeyboardAvoidingView
@@ -47,37 +76,26 @@ export default function ExchangeGoods(props: ExchangeGoodsProps) {
     >
       <TopNavigation
         type="screen"
-        title="교환글 작성"
+        title={props.editing ? '교환글 수정' : '교환글 작성'}
         onBack={props.onBack}
         trailingLabel="그만두기"
         onTrailingPress={props.onQuit}
       />
       <ScrollView
+        ref={scrollRef}
         className="flex-1"
         keyboardShouldPersistTaps="handled"
         contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
       >
-        <View
-          accessibilityRole="progressbar"
-          accessibilityLabel="교환글 작성 단계"
-          accessibilityValue={{ min: 1, max: 5, now: 3 }}
-          className="mt-[22px] flex-row gap-1"
-        >
-          {Array.from({ length: 5 }, (_, index) => (
-            <View
-              key={index}
-              className={`h-0.5 flex-1 rounded-full ${index < 3 ? 'bg-[#4A5565]' : 'bg-[#E5E7EB]'}`}
-            />
-          ))}
-        </View>
+        <ExchangeProgress {...props.progress} />
         <Text
           style={{ includeFontPadding: false }}
           className="mt-[22px] font-sans text-[20px] leading-[26px] tracking-[-0.2px] text-[#030712]"
         >
           어떤 굿즈를 내놓을까요?
         </Text>
-        <View className="mt-8 gap-3">
+        <View onLayout={fieldLayout('photos')} className="mt-8 gap-3">
           <Text
             style={{ includeFontPadding: false }}
             className="font-sans text-[14px] leading-5 text-[#030712]"
@@ -107,7 +125,7 @@ export default function ExchangeGoods(props: ExchangeGoodsProps) {
                 flexShrink: 0,
                 padding: 0,
                 borderWidth: 1,
-                borderColor: '#D1D5DC',
+                borderColor: submitted && photoError ? '#EC0042' : '#D1D5DC',
                 borderRadius: 12,
                 backgroundColor: '#FFFFFF',
               }}
@@ -158,7 +176,8 @@ export default function ExchangeGoods(props: ExchangeGoodsProps) {
             {props.photos.map((uri, index) => (
               <View key={uri} style={{ width: 64, height: 64, flexShrink: 0 }}>
                 <Thumbnail
-                  source={uri}
+                  source={props.getPhotoSource ? props.getPhotoSource(uri) : uri}
+                  cachePolicy={props.editing ? 'none' : undefined}
                   size={64}
                   cornerStyle="curved"
                   className="!rounded-xl !border-[#D1D5DC]"
@@ -188,25 +207,31 @@ export default function ExchangeGoods(props: ExchangeGoodsProps) {
               </View>
             ))}
           </ScrollView>
+          {submitted && photoError && (
+            <Text className="font-sans text-label-md text-theme-red-bold">{photoError}</Text>
+          )}
         </View>
-        <View className="mt-8">
+        <View onLayout={fieldLayout('title')} className="mt-8">
           <TextField
+            inputRef={titleRef}
             label="제품명"
             placeholder="제품명을 입력해주세요."
             placeholderTextColor="#99A1AF"
             value={props.title}
             onChangeText={props.onTitleChange}
-            maxLength={100}
+            onBlur={() => setTitleTouched(true)}
+            maxLength={40}
+            error={submitted || titleTouched ? titleError : undefined}
           />
         </View>
-        <View className="mt-8 gap-3">
+        <View onLayout={fieldLayout('category')} className="mt-8 gap-3">
           <Text className="font-sans text-[14px] leading-5 text-[#030712]">카테고리</Text>
           <View
             accessibilityRole="radiogroup"
             accessibilityLabel="카테고리"
             className="flex-row flex-wrap gap-2"
           >
-            {['캐릭터', '아이돌', '스포츠', '기타'].map((label) => (
+            {(Object.keys(postCategories) as PostCategoryLabel[]).map((label) => (
               <Chip
                 key={label}
                 size="sm"
@@ -219,15 +244,18 @@ export default function ExchangeGoods(props: ExchangeGoodsProps) {
                 style={{
                   width: label === '기타' ? 53 : 65,
                   backgroundColor: props.category === label ? '#364153' : '#FFFFFF',
-                  borderColor: '#D1D5DC',
+                  borderColor: submitted && categoryError ? '#EC0042' : '#D1D5DC',
                 }}
               >
                 {label}
               </Chip>
             ))}
           </View>
+          {submitted && categoryError && (
+            <Text className="font-sans text-label-md text-theme-red-bold">{categoryError}</Text>
+          )}
         </View>
-        <View className="mt-8 gap-3">
+        <View onLayout={fieldLayout('condition')} className="mt-8 gap-3">
           <Text className="font-sans text-[14px] leading-5 text-[#030712]">제품 상태</Text>
           <View
             accessibilityRole="radiogroup"
@@ -247,13 +275,16 @@ export default function ExchangeGoods(props: ExchangeGoodsProps) {
                 style={{
                   width: label === '미개봉' ? 65 : 53,
                   backgroundColor: props.condition === label ? '#364153' : '#FFFFFF',
-                  borderColor: '#D1D5DC',
+                  borderColor: submitted && conditionError ? '#EC0042' : '#D1D5DC',
                 }}
               >
                 {label}
               </Chip>
             ))}
           </View>
+          {submitted && conditionError && (
+            <Text className="font-sans text-label-md text-theme-red-bold">{conditionError}</Text>
+          )}
         </View>
         <View className="mt-8 gap-3">
           <Text className="font-sans text-[14px] leading-5 tracking-[-0.14px] text-[#030712]">
@@ -285,37 +316,25 @@ export default function ExchangeGoods(props: ExchangeGoodsProps) {
             placeholderTextColor="#99A1AF"
             value={props.description}
             onChangeText={props.onDescriptionChange}
-            maxLength={2000}
+            maxLength={1000}
           />
         </View>
       </ScrollView>
       <View className="shrink-0 bg-white px-4 pt-3" style={{ paddingBottom: 8 + insets.bottom }}>
         <Button
           hierarchy="primary"
-          disabled={!valid}
-          onPress={props.onNext}
-          className={`!h-[52px] self-stretch !rounded-xl ${valid ? '!bg-[#364153]' : ''}`}
+          onPress={next}
+          className="!h-[52px] self-stretch !rounded-xl !bg-[#364153]"
         >
           다음
         </Button>
       </View>
-      <Modal
+      <PhotoSelection
         visible={photoPickerOpen}
-        animationType="slide"
-        presentationStyle="fullScreen"
-        onRequestClose={() => setPhotoPickerOpen(false)}
-      >
-        {photoPickerOpen && (
-          <PhotoSelection
-            initialPhotos={props.photos}
-            onClose={() => setPhotoPickerOpen(false)}
-            onConfirm={(photos) => {
-              props.onPhotosChange(photos);
-              setPhotoPickerOpen(false);
-            }}
-          />
-        )}
-      </Modal>
+        photos={props.photos}
+        onClose={() => setPhotoPickerOpen(false)}
+        onPhotosChange={props.onPhotosChange}
+      />
     </KeyboardAvoidingView>
   );
 }

@@ -1,8 +1,14 @@
 import { Button, Checkbox, Chip, TextField, TopNavigation } from '@/shared/components';
-import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from 'react-native';
+import { useRef, useState, type ComponentRef } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import ExchangeProgress, { type ExchangeProgressValue } from './ExchangeProgress';
+import { useValidationScroll } from '../utils/useValidationScroll';
+
 type ExchangeWantedProps = {
+  editing?: boolean;
+  progress: ExchangeProgressValue;
   wanted: string;
   onWantedChange: (value: string) => void;
   anyItem: boolean;
@@ -16,7 +22,20 @@ type ExchangeWantedProps = {
 
 export default function ExchangeWanted(props: ExchangeWantedProps) {
   const insets = useSafeAreaInsets();
-  const valid = props.anyItem || (!!props.wanted.trim() && !!props.quantity);
+  const [submitted, setSubmitted] = useState(false);
+  const [wantedTouched, setWantedTouched] = useState(false);
+  const wantedRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const { scrollRef, fieldLayout, focusError } = useValidationScroll<'wanted' | 'quantity'>();
+  const wantedError =
+    !props.anyItem && !props.wanted.trim() ? '받고 싶은 제품명을 입력해 주세요.' : undefined;
+  const quantityError =
+    !props.anyItem && !props.editing && !props.quantity ? '교환 개수를 선택해 주세요.' : undefined;
+  const next = () => {
+    setSubmitted(true);
+    if (wantedError) focusError('wanted', wantedError, wantedRef.current);
+    else if (quantityError) focusError('quantity', quantityError);
+    else props.onNext();
+  };
   const quantities = [
     { label: '1개씩 교환', value: '1:1만', width: 86 },
     { label: '여러 개 교환', value: '여러 개 교환', width: 95 },
@@ -30,51 +49,43 @@ export default function ExchangeWanted(props: ExchangeWantedProps) {
     >
       <TopNavigation
         type="screen"
-        title="교환글 작성"
+        title={props.editing ? '교환글 수정' : '교환글 작성'}
         onBack={props.onBack}
         trailingLabel="그만두기"
         onTrailingPress={props.onQuit}
       />
       <ScrollView
+        ref={scrollRef}
         className="flex-1"
         keyboardShouldPersistTaps="handled"
         contentInsetAdjustmentBehavior="never"
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 32 }}
       >
-        <View
-          accessibilityRole="progressbar"
-          accessibilityLabel="교환글 작성 단계"
-          accessibilityValue={{ min: 1, max: 5, now: 4 }}
-          className="mt-[22px] flex-row gap-1"
-        >
-          {Array.from({ length: 5 }, (_, index) => (
-            <View
-              key={index}
-              className={`h-0.5 flex-1 rounded-full ${index < 4 ? 'bg-[#4A5565]' : 'bg-[#E5E7EB]'}`}
-            />
-          ))}
-        </View>
+        <ExchangeProgress {...props.progress} />
         <Text
           style={{ includeFontPadding: false }}
           className="mt-[22px] font-sans text-[20px] leading-[26px] tracking-[-0.2px] text-[#030712]"
         >
           어떤 굿즈를 받고 싶나요?
         </Text>
-        <View className="mt-8 gap-3">
+        <View onLayout={fieldLayout('wanted')} className="mt-8 gap-3">
           <Text
             style={{ includeFontPadding: false }}
-            className="font-sans text-[14px] font-normal leading-5 text-[#030712]"
+            className="font-sans text-[14px] font-normal leading-5 tracking-[-0.14px] text-[#1A1B27]"
           >
             제품명
           </Text>
           <TextField
+            inputRef={wantedRef}
             placeholder={props.anyItem ? '아무거나 상관없어요' : '제품명을 입력해주세요.'}
-            placeholderTextColor={props.anyItem ? '#D1D5DC' : '#99A1AF'}
+            placeholderTextColor={props.anyItem ? '#D1D5DC' : '#000A3161'}
             accessibilityLabel="받고 싶은 제품명"
             disabled={props.anyItem}
             value={props.anyItem ? '' : props.wanted}
+            error={submitted || wantedTouched ? wantedError : undefined}
             onChangeText={props.onWantedChange}
-            maxLength={100}
+            onBlur={() => setWantedTouched(true)}
+            maxLength={50}
           />
         </View>
         <Checkbox
@@ -84,8 +95,8 @@ export default function ExchangeWanted(props: ExchangeWantedProps) {
           className="mt-3 min-h-11 items-center"
           onPress={() => props.onAnyItemChange(!props.anyItem)}
         />
-        {!props.anyItem && (
-          <View className="mt-8 gap-3">
+        {!props.anyItem && !props.editing && (
+          <View onLayout={fieldLayout('quantity')} className="mt-8 gap-3">
             <Text
               style={{ includeFontPadding: false }}
               className="font-sans text-[14px] leading-5 text-[#030712]"
@@ -112,7 +123,7 @@ export default function ExchangeWanted(props: ExchangeWantedProps) {
                     style={{
                       width: option.width,
                       backgroundColor: selected ? '#364153' : '#FFFFFF',
-                      borderColor: '#D1D5DC',
+                      borderColor: submitted && quantityError ? '#EC0042' : '#D1D5DC',
                     }}
                   >
                     {option.label}
@@ -120,15 +131,17 @@ export default function ExchangeWanted(props: ExchangeWantedProps) {
                 );
               })}
             </View>
+            {submitted && quantityError && (
+              <Text className="font-sans text-label-md text-theme-red-bold">{quantityError}</Text>
+            )}
           </View>
         )}
       </ScrollView>
       <View className="shrink-0 bg-white px-4 pt-3" style={{ paddingBottom: 8 + insets.bottom }}>
         <Button
           hierarchy="primary"
-          disabled={!valid}
-          onPress={props.onNext}
-          className={`!h-[52px] self-stretch !rounded-xl ${valid ? '!bg-[#364153]' : ''}`}
+          onPress={next}
+          className="!h-[52px] self-stretch !rounded-xl !bg-[#364153]"
         >
           계속하기
         </Button>

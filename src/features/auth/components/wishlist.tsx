@@ -48,7 +48,7 @@ export default function Wishlist() {
         birthDate: profile.birthDate.split(/\s*\.\s*/).join('-'),
         gender: profile.gender === 'female' ? 'FEMALE' : profile.gender === 'male' ? 'MALE' : null,
       });
-      if (result?.accessToken) useAuthStore.getState().setAccessToken(result.accessToken);
+      useAuthStore.getState().setTokens(result);
       signup.setSignupSession(null);
       router.replace('/(auth)/welcome');
     } catch (error) {

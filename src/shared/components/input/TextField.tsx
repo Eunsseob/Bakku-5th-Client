@@ -4,7 +4,7 @@ import { CaretDownIcon } from 'phosphor-react-native/src/icons/CaretDown';
 import { CaretRightIcon } from 'phosphor-react-native/src/icons/CaretRight';
 import { ClockIcon } from 'phosphor-react-native/src/icons/Clock';
 import { XIcon } from 'phosphor-react-native/src/icons/X';
-import { useState } from 'react';
+import { useState, type ComponentRef, type Ref } from 'react';
 import { Text, TextInput, type TextInputProps, View } from 'react-native';
 
 import { Icon, type IconComponent } from '../display/Icon';
@@ -14,6 +14,8 @@ import { IconButton } from '../action/IconButton';
 export type TextFieldTrailing = 'delete' | 'dropDown' | 'move' | 'time' | 'date';
 
 type TextFieldProps = Omit<TextInputProps, 'editable' | 'style'> & {
+  /** 검증에 실패한 첫 입력칸에 포커스를 줄 수 있도록 내부 TextInput의 ref를 받는다. */
+  inputRef?: Ref<ComponentRef<typeof TextInput>>;
   label?: string;
   /** 레이블 옆 '(선택)' 표시 */
   optional?: boolean;
@@ -50,6 +52,7 @@ export function TextField({
   onFocus,
   onBlur,
   onChangeText,
+  inputRef,
   ...inputProps
 }: TextFieldProps) {
   const [focused, setFocused] = useState(false);
@@ -97,6 +100,7 @@ export function TextField({
             />
           ) : null}
           <TextInput
+            ref={inputRef}
             editable={!disabled}
             multiline={multiline}
             textAlignVertical={multiline ? 'top' : 'center'}
