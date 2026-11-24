@@ -1,3 +1,4 @@
+export { MyPostsScreen } from './components/MyPostsScreen';
 export { BlockedUsersScreen } from './components/BlockedUsersScreen';
 export { InquiryScreen } from './components/InquiryScreen';
 export { MyPageScreen } from './components/MyPageScreen';

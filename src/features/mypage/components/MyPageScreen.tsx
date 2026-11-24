@@ -65,11 +65,10 @@ export function MyPageScreen() {
         <Divider className="mx-[7.5px] mt-4" />
 
         <View className="mt-6 gap-2">
-          {/* TODO: 내 교환글 목록 API 가 나오면 G-2 화면으로 이동 */}
           <MenuRow
             label="내가 올린 교환글"
             trailingIcon={CaretRightIcon}
-            onPress={() => setToast(PREPARING)}
+            onPress={() => router.push('/mypage/posts')}
           />
           <MenuRow
             label="설정"
