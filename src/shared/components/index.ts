@@ -80,7 +80,7 @@ export { TextDivider } from './layout/TextDivider';
 
 // 네비게이션 Navigation: 알림 배지 · 상단/하단 네비게이션 · 메뉴
 export { BottomNavigation, type BottomNavigationItem } from './navigation/BottomNavigation';
-export { Menu, type MenuItem } from './navigation/Menu';
+export { Menu, type MenuItem, MenuRow } from './navigation/Menu';
 export {
   IconBadgeAnchor,
   NotificationBadge,
