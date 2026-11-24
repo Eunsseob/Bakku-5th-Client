@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button } from './Button';
+import { Button, type ButtonHierarchy } from './Button';
 
 // BDS Action Area: 화면 하단에 고정되는 액션 버튼 영역 (메인 · 대체 · 보조 액션)
 export type ActionAreaLayout = 'vertical' | 'horizontal';
@@ -10,6 +10,8 @@ type Action = {
   label: string;
   onPress: () => void;
   disabled?: boolean;
+  /** 메인 버튼 색. 기본 primary(진한 버튼), 탈퇴처럼 강조하지 않을 때 secondary(회색) */
+  hierarchy?: ButtonHierarchy;
 };
 
 type ActionAreaProps = {
@@ -61,7 +63,12 @@ export function ActionArea({
             {alternative.label}
           </Button>
         ) : null}
-        <Button disabled={main.disabled} onPress={main.onPress} className="flex-1">
+        <Button
+          hierarchy={main.hierarchy}
+          disabled={main.disabled}
+          onPress={main.onPress}
+          className="flex-1"
+        >
           {main.label}
         </Button>
       </View>
@@ -73,7 +80,12 @@ export function ActionArea({
       className={`items-center gap-2 bg-surface-standard px-4 pt-3 ${className ?? ''}`}
       style={{ paddingBottom }}
     >
-      <Button disabled={main.disabled} onPress={main.onPress} className="self-stretch">
+      <Button
+        hierarchy={main.hierarchy}
+        disabled={main.disabled}
+        onPress={main.onPress}
+        className="self-stretch"
+      >
         {main.label}
       </Button>
       {alternative ? (

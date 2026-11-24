@@ -1,7 +1,7 @@
 import { semantic } from '@/design-tokens';
 import { Text, View } from 'react-native';
 
-import { Button } from '../action/Button';
+import { Button, type ButtonHierarchy } from '../action/Button';
 import { Icon, type IconComponent } from '../display/Icon';
 
 // BDS Empty State: 보여줄 내용이 없을 때 안내하는 영역
@@ -15,6 +15,8 @@ type EmptyStateProps = {
     onPress: () => void;
     leadingIcon?: IconComponent;
     trailingIcon?: IconComponent;
+    /** 버튼 색. 기본 secondary(회색), 글쓰기처럼 진한 버튼이면 primary */
+    hierarchy?: ButtonHierarchy;
   };
   className?: string;
 };
@@ -38,7 +40,7 @@ export function EmptyState({ title, description, icon, action, className }: Empt
       </View>
       {action ? (
         <Button
-          hierarchy="secondary"
+          hierarchy={action.hierarchy ?? 'secondary'}
           size="sm"
           leadingIcon={action.leadingIcon}
           trailingIcon={action.trailingIcon}
