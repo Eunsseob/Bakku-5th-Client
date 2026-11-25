@@ -19,6 +19,7 @@ type BottomSheetProps = {
   onRequestClose: () => void;
   /** iOS에서 닫기 애니메이션이 끝나면 호출 */
   onDismiss?: ModalProps['onDismiss'];
+  animationType?: ModalProps['animationType'];
   minimumBottomInset?: number;
   className?: string;
   title?: string;
@@ -38,6 +39,7 @@ export function BottomSheet({
   visible,
   onRequestClose,
   onDismiss,
+  animationType = 'fade',
   minimumBottomInset = 0,
   className = 'rounded-t-24 bg-surface-standard',
   title,
@@ -55,7 +57,7 @@ export function BottomSheet({
     <RNModal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType={animationType}
       statusBarTranslucent
       onRequestClose={onRequestClose}
       onDismiss={onDismiss}
