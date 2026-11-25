@@ -5,7 +5,7 @@ import { Text, View } from 'react-native';
 
 import { Badge, Divider, Icon, IconButton, TextDivider, Thumbnail } from '@/shared/components';
 
-import type { MyPost } from '../api/mockMyPosts';
+import type { MyPost } from '../../api/mockMyPosts';
 
 // BDS Feed Item (G-2 내 교환글 카드): 썸네일 128 · 제목 · 위치 · 시간 · 배지 · 바꾸고 싶은 아이템
 

@@ -14,13 +14,14 @@ import {
   TopNavigation,
 } from '@/shared/components';
 
-import { getWithdrawalNotice, withdraw, type WithdrawalReason } from '../api/mypageApi';
-import { mypageKeys } from '../api/queryKeys';
-import { useToastMessage } from '../hooks/useToastMessage';
-import { ToastOverlay } from './ToastOverlay';
+import { getWithdrawalNotice, withdraw, type WithdrawalReason } from '../../api/mypageApi';
+import { mypageKeys } from '../../api/queryKeys';
+import { useToastMessage } from '../../hooks/useToastMessage';
+import { ToastOverlay } from '../common/ToastOverlay';
 
 // G-1-5. 설정 - 탈퇴하기 (2729:31401). MB-5 진행 중인 교환 안내 · 사유 선택 · 확인 체크
 // → G-1-5-1 확인 모달 (2840:31787) → MB-6
+// 진행 중인 교환이 있으면 맨 위에 안내 박스 (G-5 5-12 · 3115:55034)
 
 const NOTICES = [
   '교환 가능 글은 자동으로 삭제돼요',
@@ -72,16 +73,20 @@ export function WithdrawScreen() {
     <View className="flex-1 bg-surface-standard">
       <TopNavigation type="screen" title="탈퇴하기" onBack={() => router.back()} />
       <ScrollView contentContainerClassName="pb-6 pt-4">
+        {inProgress > 0 ? (
+          <View className="mx-4 mb-6 gap-1 rounded-12 border border-stroke-subtler bg-surface-deep px-3.5 py-3">
+            <Text className="font-sans text-label-md font-semibold text-object-boldest">
+              {`진행 중인 교환이 ${inProgress}건 있어요`}
+            </Text>
+            <Text className="font-sans text-label-sm font-normal text-object-alternative">
+              탈퇴하면 잡혀 있는 약속은 자동으로 취소되고, 상대에게 ‘약속이 취소됐어요’ 알림이 가요
+            </Text>
+          </View>
+        ) : null}
         <Text className="h-[26px] px-4 font-sans text-title-2 font-semibold text-object-bold">
           탈퇴하기 전에 확인해주세요
         </Text>
         <View className="mt-4 gap-4 px-4">
-          {/* TODO: 진행 중인 교환 안내는 1차 와이어프레임 문구. 하이파이 디자인이 나오면 맞춘다 */}
-          {inProgress > 0 ? (
-            <Notice>
-              {`진행중인 교환이 ${inProgress}건 있어요. 탈퇴시 잡혀있는 약속은 자동으로 취소되고 상대에게 약속 취소 알림이 발송돼요`}
-            </Notice>
-          ) : null}
           {NOTICES.map((text) => (
             <Notice key={text}>{text}</Notice>
           ))}

@@ -7,8 +7,8 @@ import { ScrollView, View } from 'react-native';
 import { getTerms } from '@/features/auth/api/terms';
 import { EmptyState, MenuRow, TopNavigation } from '@/shared/components';
 
-import { useToastMessage } from '../hooks/useToastMessage';
-import { ToastOverlay } from './ToastOverlay';
+import { useToastMessage } from '../../hooks/useToastMessage';
+import { ToastOverlay } from '../common/ToastOverlay';
 
 // G-1-2. 설정 - 약관 및 정책 (2729:30740). 약관 목록은 TM-1, 누르면 약관 주소(url)를 연다.
 // 가장 민감한 약관(개인정보 처리방침)은 굵게 (Figma 주석: 카카오 벤치마킹)

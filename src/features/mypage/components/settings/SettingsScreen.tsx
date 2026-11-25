@@ -1,23 +1,29 @@
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { CaretRightIcon } from 'phosphor-react-native/src/icons/CaretRight';
+import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { logout } from '@/features/auth/utils/logout';
-import { Divider, MenuRow, TopNavigation } from '@/shared/components';
+import { Divider, MenuRow, Modal, TopNavigation } from '@/shared/components';
 
-// G-1. 설정-상세 (2729:30664). 알림 설정은 2차라 막아 둔다.
+// G-1. 설정-상세 (2729:30664). 알림 설정 → G-3(추가 프레임), 로그아웃 → G-5 5-09a 확인 팝업
 
 const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
 export function SettingsScreen() {
+  const [confirmLogout, setConfirmLogout] = useState(false);
+
   return (
     <View className="flex-1 bg-surface-standard">
       <TopNavigation type="screen" title="설정" onBack={() => router.back()} />
       <ScrollView contentContainerClassName="pb-6 pt-4">
         <View className="gap-2">
-          {/* G-1-1 알림 설정은 2차 */}
-          <MenuRow label="알림 설정" trailingIcon={CaretRightIcon} disabled />
+          <MenuRow
+            label="알림 설정"
+            trailingIcon={CaretRightIcon}
+            onPress={() => router.push('/me/notifications')}
+          />
           <MenuRow
             label="차단 사용자"
             trailingIcon={CaretRightIcon}
@@ -40,8 +46,12 @@ export function SettingsScreen() {
         <Divider className="mx-[7.5px] mt-4" />
 
         {/* 로그아웃 · 탈퇴하기: 344 가운데, 한 줄 24 · 간격 28 */}
-        <View className="mt-5 gap-7 px-[15.5px]">
-          <Pressable accessibilityRole="button" onPress={logout} className="h-6 justify-center">
+        <View className="mt-[30px] gap-7 px-[15.5px]">
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setConfirmLogout(true)}
+            className="h-6 justify-center"
+          >
             <Text className="font-sans text-label-lg font-medium text-theme-red-bold">
               로그아웃
             </Text>
@@ -51,12 +61,25 @@ export function SettingsScreen() {
             onPress={() => router.push('/withdraw')}
             className="h-6 justify-center"
           >
-            <Text className="font-sans text-label-lg font-medium text-object-assistive">
-              탈퇴하기
-            </Text>
+            <Text className="font-sans text-label-lg font-medium text-object-bold">탈퇴하기</Text>
           </Pressable>
         </View>
       </ScrollView>
+
+      {/* G-5 5-09a 로그아웃 확인 팝업. TODO: 버튼 문구는 Figma 에 'PD' 로 비어 있다 */}
+      <Modal
+        visible={confirmLogout}
+        title="로그아웃할까요?"
+        primary={{
+          label: '로그아웃',
+          onPress: () => {
+            setConfirmLogout(false);
+            logout();
+          },
+        }}
+        secondary={{ label: '취소', onPress: () => setConfirmLogout(false) }}
+        onRequestClose={() => setConfirmLogout(false)}
+      />
     </View>
   );
 }
