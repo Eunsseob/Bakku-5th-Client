@@ -24,6 +24,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -155,6 +156,7 @@ export default function PostDetail() {
   const [mapOpen, setMapOpen] = useState(false);
   const [postMenuOpen, setPostMenuOpen] = useState(false);
   const [exchangeSheetOpen, setExchangeSheetOpen] = useState(false);
+  const pendingExchangeRoute = useRef<'/post/request' | '/post/select-offer' | null>(null);
   const [showReportToast, setShowReportToast] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const deleteInProgress = useRef(false);
@@ -349,6 +351,12 @@ export default function PostDetail() {
   const actionDisabled = !post.isMine && !post.chatRoomId && !post.canRequest;
   const canOpenExchangeSheet = !post.isMine && !post.chatRoomId && post.canRequest;
   const closeExchangeSheet = () => setExchangeSheetOpen(false);
+  const openExchangeRoute = (pathname: '/post/request' | '/post/select-offer') => {
+    if (pendingExchangeRoute.current) return;
+    if (Platform.OS === 'ios') pendingExchangeRoute.current = pathname;
+    closeExchangeSheet();
+    if (Platform.OS !== 'ios') router.push({ pathname, params: { id } });
+  };
   const actionLabel = post.isMine
     ? `받은 요청 ${requestCount}개 보기`
     : post.chatRoomId
@@ -770,7 +778,9 @@ export default function PostDetail() {
             disabled={actionDisabled}
             onPress={() => {
               if (canOpenExchangeSheet) setExchangeSheetOpen(true);
-              else Alert.alert(actionLabel, '이 화면은 준비 중이에요.');
+              else if (post.chatRoomId) {
+                router.push({ pathname: '/chat/[id]', params: { id: String(post.chatRoomId) } });
+              } else Alert.alert(actionLabel, '이 화면은 준비 중이에요.');
             }}
             style={{
               height: 52,
@@ -800,29 +810,33 @@ export default function PostDetail() {
         visible={canOpenExchangeSheet && exchangeSheetOpen}
         animationType="slide"
         onRequestClose={closeExchangeSheet}
+        onDismiss={() => {
+          const pathname = pendingExchangeRoute.current;
+          pendingExchangeRoute.current = null;
+          if (pathname) router.push({ pathname, params: { id } });
+        }}
       >
         <View className="pt-2">
           <ListItem
             label="새로 작성하기"
             leading={{ type: 'icon', icon: PencilSimpleIcon }}
             trailing="chevronRight"
-            onPress={() => {
-              closeExchangeSheet();
-              router.push('/(main)/(post-create)/write');
-            }}
+            onPress={() => openExchangeRoute('/post/request')}
           />
           <ListItem
             label="내 교환글에서 고르기"
             leading={{ type: 'icon', icon: ListBulletsIcon }}
             trailing="chevronRight"
-            onPress={() => {
-              closeExchangeSheet();
-              router.push('/(main)/mypage/posts');
-            }}
+            onPress={() => openExchangeRoute('/post/select-offer')}
           />
         </View>
-        <View className="pb-2 pt-3">
-          <Button hierarchy="secondary" className="self-stretch" onPress={closeExchangeSheet}>
+        <View className="py-2.5">
+          <Button
+            hierarchy="secondary"
+            size="lg"
+            className="self-stretch"
+            onPress={closeExchangeSheet}
+          >
             닫기
           </Button>
         </View>
@@ -835,7 +849,7 @@ export default function PostDetail() {
         <View className="pt-2">
           <ListItem
             label="신고하기"
-            leading={{ type: 'icon', icon: FlagIcon, color: '#EC0042' }}
+            leading={{ type: 'icon', icon: FlagIcon }}
             feedback="destructive"
             onPress={() => {
               closePostMenu();
