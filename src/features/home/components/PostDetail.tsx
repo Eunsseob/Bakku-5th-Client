@@ -157,19 +157,18 @@ export default function PostDetail() {
   const [postMenuOpen, setPostMenuOpen] = useState(false);
   const [exchangeSheetOpen, setExchangeSheetOpen] = useState(false);
   const pendingExchangeRoute = useRef<'/post/request' | '/post/select-offer' | null>(null);
-  const [showReportToast, setShowReportToast] = useState(false);
+  const [dismissedReport, setDismissedReport] = useState<string>();
   const [deleteBusy, setDeleteBusy] = useState(false);
   const deleteInProgress = useRef(false);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now);
-  const hasDetail = !!detail.data;
+  const showReportToast = !!detail.data && !!reportCompleted && reportCompleted !== dismissedReport;
   useEffect(() => {
-    if (!reportCompleted || !hasDetail) return;
-    setShowReportToast(true);
-    const timeout = setTimeout(() => setShowReportToast(false), 3000);
+    if (!showReportToast) return;
+    const timeout = setTimeout(() => setDismissedReport(reportCompleted), 3000);
     return () => clearTimeout(timeout);
-  }, [reportCompleted, hasDetail]);
+  }, [reportCompleted, showReportToast]);
   const images = detail.data?.images;
   const photos = useMemo(() => {
     if (!images || !accessToken) return [];
