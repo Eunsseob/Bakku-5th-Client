@@ -19,7 +19,9 @@ export default function PostReportRoute() {
       <Stack.Screen options={{ headerShown: false }} />
       <PostReportScreen
         onBack={goBack}
-        onReasonPress={(reason) => router.push({ pathname: '/post/report-detail', params: { id, reason } })}
+        onReasonPress={(reason) =>
+          router.push({ pathname: '/post/report-detail', params: { id, reason } })
+        }
       />
     </>
   );

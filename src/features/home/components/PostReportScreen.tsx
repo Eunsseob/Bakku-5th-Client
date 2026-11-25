@@ -6,7 +6,13 @@ import { Divider, ListItem, TopNavigation } from '@/shared/components';
 
 import { reportReasonDetails, type ReportReason } from './PostReportDetailScreen';
 
-const detailedReportReasons: ReportReason[] = ['sale', 'external', 'inappropriate', 'fraud', 'other'];
+const detailedReportReasons: ReportReason[] = [
+  'sale',
+  'external',
+  'inappropriate',
+  'fraud',
+  'other',
+];
 
 export function PostReportScreen({
   onBack,

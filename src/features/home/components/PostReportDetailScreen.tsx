@@ -59,9 +59,7 @@ export function PostReportDetailScreen({
         >
           {title}
         </Text>
-        <Text className="font-sans text-[16px] leading-[26px] text-[#00051E8D]">
-          {description}
-        </Text>
+        <Text className="font-sans text-[16px] leading-[26px] text-[#00051E8D]">{description}</Text>
         {requiresDetails && (
           <View className="mt-5 gap-3">
             <Text className="font-sans text-label-md font-semibold text-object-boldest">
