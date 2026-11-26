@@ -1,4 +1,4 @@
-import { Chip, TextField, TopNavigation } from '@/shared/components';
+import { Chip, TopNavigation } from '@/shared/components';
 import { BellIcon } from 'phosphor-react-native/src/icons/Bell';
 import { MagnifyingGlassIcon } from 'phosphor-react-native/src/icons/MagnifyingGlass';
 import { useRef, type ComponentRef } from 'react';
@@ -10,13 +10,9 @@ type Props = {
   location: string;
   category: string;
   mode: string;
-  query: string;
-  searchVisible: boolean;
-  searching: boolean;
   onRegionPress: (anchor: MenuAnchor) => void;
   onSearchPress: () => void;
   onNotificationsPress: () => void;
-  onQueryChange: (query: string) => void;
   onCategoryChange: (category: string) => void;
   onModePress: (anchor: MenuAnchor) => void;
   modeExpanded: boolean;
@@ -31,14 +27,11 @@ export default function HomeHeader(props: Props) {
         <TopNavigation
           type="home"
           safeArea={false}
-          title={props.searching || props.location === '전체' ? '모든 지역' : props.location}
-          onTitlePress={
-            props.searching
-              ? undefined
-              : () =>
-                  regionAnchor.current?.measureInWindow((x, y, width, height) =>
-                    props.onRegionPress({ x: x + 16, y, width, height }),
-                  )
+          title={props.location === '전체' ? '모든 지역' : props.location}
+          onTitlePress={() =>
+            regionAnchor.current?.measureInWindow((x, y, width, height) =>
+              props.onRegionPress({ x: x + 16, y, width, height }),
+            )
           }
           actions={[
             {
@@ -50,40 +43,27 @@ export default function HomeHeader(props: Props) {
           ]}
         />
       </View>
-      {props.searchVisible && (
-        <View className="px-4 pb-3">
-          <TextField
-            accessibilityLabel="교환할 굿즈 검색"
-            placeholder="굿즈를 검색해 보세요"
-            value={props.query}
-            onChangeText={props.onQueryChange}
-            returnKeyType="search"
-          />
-        </View>
-      )}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, gap: 8 }}
       >
-        {!props.searching && (
-          <View ref={modeAnchor} collapsable={false}>
-            <Chip
-              size="lg"
-              hierarchy="primary"
-              trailingIconVisible
-              accessibilityState={{ expanded: props.modeExpanded }}
-              onPress={() =>
-                modeAnchor.current?.measureInWindow((x, y, width, height) =>
-                  props.onModePress({ x, y, width, height }),
-                )
-              }
-              className="!h-10 !bg-[#364153] !px-3.5"
-            >
-              {props.mode}
-            </Chip>
-          </View>
-        )}
+        <View ref={modeAnchor} collapsable={false}>
+          <Chip
+            size="lg"
+            hierarchy="primary"
+            trailingIconVisible
+            accessibilityState={{ expanded: props.modeExpanded }}
+            onPress={() =>
+              modeAnchor.current?.measureInWindow((x, y, width, height) =>
+                props.onModePress({ x, y, width, height }),
+              )
+            }
+            className="!h-10 !bg-[#364153] !px-3.5"
+          >
+            {props.mode}
+          </Chip>
+        </View>
         {['캐릭터', '아이돌', '스포츠', '기타'].map((label) => {
           const selected = props.category === label;
           return (
