@@ -28,17 +28,6 @@ export const WIRE = {
   white: primitive.base[0],
 };
 
-/** 안 읽은 메시지 수 (99 초과면 +99) */
-export function WireCount({ count }: { count: number }) {
-  return (
-    <View className="min-w-[18px] items-center justify-center rounded-8 bg-gray-600 px-1.5 py-px">
-      <Text className="font-sans text-label-xs font-semibold text-white">
-        {count > 99 ? '+99' : count}
-      </Text>
-    </View>
-  );
-}
-
 type WireButtonTone = 'strong' | 'dark' | 'light' | 'muted';
 type WireButtonSize = 'sm' | 'md' | 'lg';
 

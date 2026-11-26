@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { semantic } from '@/design-tokens';
 import {
   CompleteConfirmSheet,
   type ConfirmationRequest,
@@ -38,7 +39,6 @@ import { ChatInput } from './ChatInput';
 import { DateDivider, MessageItem } from './MessageItems';
 import { SheetMenu, type SheetMenuOption } from './SheetMenu';
 import { ExchangeStatusBadge } from './StatusBadges';
-import { WIRE } from './wire';
 
 // E 채팅·약속-2 ~ 6 (1차): 1:1 채팅방, + 메뉴, 약속 제안 카드, 약속 수락 모달, 약속 확정(예약중)
 // F-1 (1차): 교환 완료 확인 카드, 교환 확정 시트, 성공 · 취소 카드, 토스트
@@ -75,10 +75,13 @@ function plusMenu(appointmentDisabled: boolean): SheetMenuOption[] {
   ];
 }
 
-/** 교환글 요약: 사진 48 r8 · 제목 label/lg SemiBold · 요약 body/2xs Medium · 상태 태그 */
+/**
+ * BDS 채팅 상태 Chat State: 사진 48 r8 · 굿즈명 label/lg bold · ⇆ 14 + 제품명 label/sm · 상태 배지
+ * 좌우 16 · 위아래 12, 아래 테두리 stroke/subtle
+ */
 function PostSummary({ post }: { post: ChatRoomDetail['post'] }) {
   return (
-    <View className="flex-row items-center gap-4 border-b border-gray-75 bg-white px-4 py-3">
+    <View className="flex-row items-center gap-4 border-b border-stroke-subtle bg-surface-standard px-4 py-3">
       {post.thumbnailUrl ? (
         <Image
           source={post.thumbnailUrl}
@@ -86,16 +89,22 @@ function PostSummary({ post }: { post: ChatRoomDetail['post'] }) {
           style={{ width: 48, height: 48, borderRadius: 8 }}
         />
       ) : (
-        <View className="size-12 rounded-8 bg-gray-50" />
+        <View className="size-12 rounded-8 bg-object-inverse-bolder" />
       )}
-      <View className="flex-1 flex-row items-center gap-0.5">
+      <View className="flex-1 flex-row items-center justify-between">
         <View className="flex-1 gap-0.5">
-          <Text numberOfLines={1} className="font-sans text-label-lg font-semibold text-gray-900">
+          <Text
+            numberOfLines={1}
+            className="font-sans text-label-lg font-semibold text-object-boldest"
+          >
             {post.title}
           </Text>
-          <View className="flex-row items-center gap-0.5">
-            <Icon icon={ArrowsLeftRightIcon} size="sm" color={WIRE.alternative} />
-            <Text numberOfLines={1} className="font-sans text-body-2xs font-medium text-gray-500">
+          <View className="flex-row items-center gap-1">
+            <Icon icon={ArrowsLeftRightIcon} size="sm" color={semantic.object.normal} />
+            <Text
+              numberOfLines={1}
+              className="shrink font-sans text-label-sm font-normal text-object-alternative"
+            >
               {post.offerSummary}
             </Text>
           </View>

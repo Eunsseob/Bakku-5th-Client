@@ -23,14 +23,30 @@ export function DateDivider({ date }: { date: string }) {
   );
 }
 
-/** 말풍선 줄: 반대쪽을 64 비우고, 시각(11)은 말풍선 옆 아래에 붙는다 */
-function Row({ mine, sentAt, children }: { mine: boolean; sentAt: string; children: ReactNode }) {
+/**
+ * 말풍선 줄: 반대쪽을 64 비우고, 시각(BDS Chatbubble/time: label/xs subtle)은 말풍선 옆 아래에 붙는다.
+ * fullWidth: 폭이 정해진 카드(약속 카드 250)는 반대쪽을 비우지 않는다
+ */
+function Row({
+  mine,
+  sentAt,
+  fullWidth = false,
+  children,
+}: {
+  mine: boolean;
+  sentAt: string;
+  fullWidth?: boolean;
+  children: ReactNode;
+}) {
   const time = (
-    <Text className="font-sans text-label-xs font-normal text-gray-300">{formatClock(sentAt)}</Text>
+    <Text className="font-sans text-label-xs font-normal text-object-subtle">
+      {formatClock(sentAt)}
+    </Text>
   );
+  const reserve = fullWidth ? '' : mine ? 'pl-16' : 'pr-16';
   return (
     <View
-      className={`flex-row items-end gap-2 ${mine ? 'justify-end pl-16' : 'justify-start pr-16'}`}
+      className={`flex-row items-end gap-2 ${mine ? 'justify-end' : 'justify-start'} ${reserve}`}
     >
       {mine ? time : null}
       <View className="shrink">{children}</View>
@@ -149,8 +165,9 @@ export function MessageItem({
   }
 
   if (message.type === 'proposal') {
+    // BDS Chatbubble/reserve: 받은 카드는 [카드 8 시각], 보낸 카드는 [시각 8 카드]
     return (
-      <View className={`w-[247px] ${mine ? 'self-end' : 'self-start'}`}>
+      <Row mine={mine} sentAt={message.sentAt} fullWidth>
         <ProposalCard
           mine={mine}
           appointment={message.appointment}
@@ -158,7 +175,7 @@ export function MessageItem({
           onAccept={() => onAcceptProposal?.(message.id)}
           onReject={() => onRejectProposal?.(message.id)}
         />
-      </View>
+      </Row>
     );
   }
 
