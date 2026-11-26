@@ -1,7 +1,7 @@
 import { BellIcon } from 'phosphor-react-native/src/icons/Bell';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { FlatList, Pressable, Text, View } from 'react-native';
+import { FlatList, Text, View } from 'react-native';
 
 import { EmptyState, TopNavigation, type TopNavigationTab } from '@/shared/components';
 
@@ -10,7 +10,7 @@ import type { ExchangeStatus } from '../types';
 import { ChatListItem } from './ChatListItem';
 import { SheetMenu } from './SheetMenu';
 
-// E 채팅·약속-1: 채팅 목록
+// E-1 채팅 목록 · E-1-1 비어있음
 
 type Filter = 'all' | 'status' | 'received' | 'sent';
 
@@ -57,7 +57,7 @@ export function ChatListScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-surface-standard">
       <TopNavigation
         type="home"
         title="채팅"
@@ -74,24 +74,21 @@ export function ChatListScreen() {
           />
         </View>
       ) : isLoading ? null : rooms.length === 0 ? (
-        // 채팅·약속-1(비어있음): body/lg Medium 회색 문구 + 회색 버튼
-        <View className="flex-1 items-center justify-center gap-4">
-          <Text className="font-sans text-body-lg font-medium text-gray-300">채팅방이 없어요.</Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.navigate('/home')}
-            className="rounded-8 bg-gray-75 px-3 py-2"
-          >
-            <Text className="font-sans text-label-md font-medium text-gray-700">
-              교환글 둘러보기
-            </Text>
-          </Pressable>
+        // E-1-1 채팅 목록-비어있음: BDS Empty state
+        <View className="flex-1 justify-center">
+          <EmptyState
+            title="채팅중인 상대가 없습니다"
+            description="새로운 교환을 신청해보세요!"
+            action={{ label: '교환글 보러가기', onPress: () => router.navigate('/home') }}
+          />
         </View>
       ) : (
         <FlatList
           data={visibleRooms}
           keyExtractor={(room) => room.id}
-          contentContainerClassName="pb-2 pt-1.5"
+          // E-1: 좌우 16 · 위 22 · 줄 사이 16
+          contentContainerClassName="px-4 pb-4 pt-[22px]"
+          ItemSeparatorComponent={() => <View className="h-4" />}
           renderItem={({ item }) => (
             <ChatListItem
               room={item}
@@ -99,7 +96,7 @@ export function ChatListScreen() {
             />
           )}
           ListEmptyComponent={
-            <Text className="py-10 text-center font-sans text-body-lg font-medium text-gray-300">
+            <Text className="py-10 text-center font-sans text-body-lg font-medium text-object-assistive">
               조건에 맞는 채팅방이 없어요.
             </Text>
           }

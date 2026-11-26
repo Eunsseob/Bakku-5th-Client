@@ -1,17 +1,22 @@
 import { CheckIcon } from 'phosphor-react-native/src/icons/Check';
-import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { semantic } from '@/design-tokens';
-import { Icon, type IconComponent } from '@/shared/components';
-
-import { WIRE } from './wire';
+import {
+  BottomSheet,
+  Button,
+  Icon,
+  type IconComponent,
+  InteractionLayer,
+} from '@/shared/components';
 
 export type SheetMenuOption = {
   key: string;
   label: string;
   icon?: IconComponent;
   disabled?: boolean;
+  /** 채팅방 나가기처럼 되돌릴 수 없는 동작 (빨간 글자 · 아이콘) */
+  destructive?: boolean;
 };
 
 type SheetMenuProps = {
@@ -20,11 +25,12 @@ type SheetMenuProps = {
   onSelect: (key: string) => void;
   onClose: () => void;
   title?: string;
-  /** 선택된 항목 오른쪽에 체크 표시 */
+  /** 선택된 항목 오른쪽에 체크 표시 (날짜 · 시간 고르기) */
   selectedKey?: string;
 };
 
-// 아래에서 올라오는 선택 메뉴 (채팅방 + 버튼, 날짜·시간 고르기 등)
+// BDS Bottom Sheet + Menu (E-3 + 메뉴, E-2-4 채팅방 옵션, 날짜 · 시간 고르기)
+// 손잡이 · 좌우 16 · 줄 위아래 10 · 아이콘 20(25 칸) + 8 + label/lg · 아래 [닫기] 회색 큰 버튼
 export function SheetMenu({
   visible,
   options,
@@ -33,65 +39,56 @@ export function SheetMenu({
   title,
   selectedKey,
 }: SheetMenuProps) {
-  const insets = useSafeAreaInsets();
-
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      statusBarTranslucent
-      onRequestClose={onClose}
-    >
-      <View className="flex-1 justify-end">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="닫기"
-          onPress={onClose}
-          className="absolute inset-0 bg-black/15"
-        />
-        {/* 채팅·약속-3: 좌우 8 띄운 흰 시트 r16, 손잡이 48×4, 줄 높이 44 · 16 Regular */}
-        <View
-          className="mx-2 max-h-[70%] rounded-16 bg-white"
-          style={{ marginBottom: insets.bottom + 8 }}
-        >
-          <View className="h-[18px] items-center justify-center">
-            <View className="h-1 w-12 rounded-max bg-gray-75" />
-          </View>
-          {title ? (
-            <Text className="px-4 pb-1 pt-2 font-sans text-label-lg font-semibold text-gray-900">
-              {title}
-            </Text>
-          ) : null}
-          <ScrollView bounces={false} contentContainerClassName="pb-2">
-            {options.map((option) => {
-              const selected = option.key === selectedKey;
-              const color = option.disabled ? WIRE.assistive : WIRE.normal;
-              return (
-                <Pressable
-                  key={option.key}
-                  accessibilityRole="button"
-                  accessibilityState={{ disabled: !!option.disabled, selected }}
-                  disabled={option.disabled}
-                  onPress={() => onSelect(option.key)}
-                  className="h-11 flex-row items-center gap-3 px-4"
-                  style={({ pressed }) => ({
-                    backgroundColor: pressed ? semantic.fill.subtlest : undefined,
-                  })}
-                >
-                  {option.icon ? <Icon icon={option.icon} size="lg" color={color} /> : null}
+    <BottomSheet visible={visible} title={title} onRequestClose={onClose}>
+      <ScrollView bounces={false} className="max-h-[360px]">
+        {options.map((option) => {
+          const selected = option.key === selectedKey;
+          let color: string = semantic.object.boldest;
+          let label = 'text-object-bolder';
+          if (option.disabled) {
+            color = semantic.object.subtler;
+            label = 'text-object-subtler';
+          } else if (option.destructive) {
+            color = semantic.theme.red.bold;
+            label = 'text-theme-red-bold';
+          }
+          return (
+            <Pressable
+              key={option.key}
+              accessibilityRole="menuitem"
+              accessibilityState={{ disabled: !!option.disabled, selected }}
+              disabled={option.disabled}
+              onPress={() => onSelect(option.key)}
+              className="flex-row items-center gap-2 py-2.5"
+            >
+              {({ pressed }) => (
+                <>
+                  {option.icon ? (
+                    <View className="size-[25px] items-center justify-center">
+                      <Icon icon={option.icon} size="lg" color={color} />
+                    </View>
+                  ) : null}
                   <Text
-                    className={`flex-1 font-sans text-label-lg ${option.disabled ? 'text-gray-300' : selected ? 'font-semibold text-gray-900' : 'font-normal text-gray-700'}`}
+                    className={`flex-1 font-sans text-label-lg ${selected ? 'font-semibold' : 'font-normal'} ${label}`}
                   >
                     {option.label}
                   </Text>
-                  {selected ? <Icon icon={CheckIcon} size="lg" color={WIRE.strong} /> : null}
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
+                  {selected ? (
+                    <Icon icon={CheckIcon} size="lg" color={semantic.object.boldest} />
+                  ) : null}
+                  <InteractionLayer pressed={pressed} color={semantic.fill.boldest} />
+                </>
+              )}
+            </Pressable>
+          );
+        })}
+      </ScrollView>
+      <View className="pb-2 pt-3">
+        <Button hierarchy="secondary" size="lg" onPress={onClose} className="self-stretch">
+          닫기
+        </Button>
       </View>
-    </Modal>
+    </BottomSheet>
   );
 }

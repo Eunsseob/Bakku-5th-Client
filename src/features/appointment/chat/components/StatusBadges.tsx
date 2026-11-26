@@ -1,16 +1,23 @@
-import { Badge, type BadgeHierarchy, type BadgeVariant, Tag } from '@/shared/components';
+import { Badge, type BadgeHierarchy, type BadgeVariant } from '@/shared/components';
 
 import type { ExchangeStatus, ItemCondition } from '../types';
 
-const CONDITION_LABEL: Record<ItemCondition, string> = {
+export const CONDITION_LABEL: Record<ItemCondition, string> = {
   sealed: '미개봉',
   opened: '개봉',
 };
 
-/** 개봉 여부를 모르면 (서버 POST 아이템) 보이지 않는다 */
+/**
+ * 교환 요청 물건 카드(BDS Chatbubble/itemcard)의 개봉 여부: Badge primary outlined lg.
+ * 개봉 여부를 모르면 (서버 POST 아이템) 보이지 않는다
+ */
 export function ItemConditionBadge({ condition }: { condition?: ItemCondition }) {
   if (!condition) return null;
-  return <Tag hierarchy="secondary">{CONDITION_LABEL[condition]}</Tag>;
+  return (
+    <Badge hierarchy="primary" variant="outlined" size="lg">
+      {CONDITION_LABEL[condition]}
+    </Badge>
+  );
 }
 
 type StatusBadgeStyle = { label: string; hierarchy: BadgeHierarchy; variant: BadgeVariant };

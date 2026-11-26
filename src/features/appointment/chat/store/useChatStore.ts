@@ -21,6 +21,8 @@ type ChatState = {
   /** 받은 제안 수락 → 카드가 '약속 확정'으로, 글은 예약중 */
   accept: (roomId: string, messageId: string) => void;
   reject: (roomId: string, messageId: string) => void;
+  /** 내가 보낸 제안 철회 */
+  withdraw: (roomId: string, messageId: string) => void;
   /**
    * F-1 교환 확인 결과 반영.
    * completed: 카드가 '교환에 성공했어요!' 로, 글은 교환 완료
@@ -52,8 +54,12 @@ export const useChatStore = create<ChatState>((set) => {
   const myMessage = (body: NewMessage): ChatMessage =>
     ({ ...body, id: nextId(), sender: 'me', sentAt: new Date().toISOString() }) as ChatMessage;
 
-  /** 받은 제안(pending)만 처리한다 */
-  const settle = (room: ChatRoomDetail, messageId: string, state: 'accepted' | 'rejected') => {
+  /** 아직 답하지 않은 제안(pending)만 처리한다 */
+  const settle = (
+    room: ChatRoomDetail,
+    messageId: string,
+    state: 'accepted' | 'rejected' | 'withdrawn',
+  ) => {
     const proposal = room.messages.find((item) => item.id === messageId);
     if (proposal?.type !== 'proposal' || proposal.state !== 'pending') return null;
     return {
@@ -101,6 +107,12 @@ export const useChatStore = create<ChatState>((set) => {
     reject: (roomId, messageId) =>
       update(roomId, (room) => {
         const result = settle(room, messageId, 'rejected');
+        return result ? { ...room, messages: result.messages } : room;
+      }),
+
+    withdraw: (roomId, messageId) =>
+      update(roomId, (room) => {
+        const result = settle(room, messageId, 'withdrawn');
         return result ? { ...room, messages: result.messages } : room;
       }),
 

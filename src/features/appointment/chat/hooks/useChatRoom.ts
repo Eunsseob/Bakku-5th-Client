@@ -6,6 +6,7 @@ import { type AppointmentResponse, getAppointment } from '@/features/completion/
 import type { ConfirmResult } from '@/features/completion/review/types';
 
 import {
+  blockMember,
   getChatRoom,
   getMessages,
   leaveChatRoom,
@@ -17,11 +18,14 @@ import {
   acceptAppointment,
   getCurrentAppointment,
   getExchange,
+  proposeAppointment,
   rejectAppointment,
+  withdrawAppointment,
 } from '../api/exchangeApi';
 import { appointmentIdsOf, toChatRoomDetail } from '../api/mapChat';
 import { chatKeys, exchangeKeys } from '../api/queryKeys';
 import { useChatStore } from '../store/useChatStore';
+import type { AppointmentDraft } from '../types';
 
 /** 메시지 새로고침 간격. 소켓(MESSAGE_CREATED)이 붙기 전까지 주기적으로 다시 읽는다 */
 const POLL_MS = 5_000;
@@ -151,6 +155,36 @@ export function useChatRoom(roomId: string) {
       return true;
     },
 
+    /** A-1 약속 제안 (E-4-1 약속 잡기) */
+    propose: async (draft: AppointmentDraft) => {
+      if (USE_MOCK_CHAT) {
+        const items = mockRoom?.requestItems.filter((item) => draft.itemIds.includes(item.id));
+        return store().propose(roomId, {
+          meetAt: draft.meetAt.toISOString(),
+          place: draft.place.name,
+          items: items ?? [],
+          isNow: draft.isNow,
+        });
+      }
+      const exchangeIdValue = roomQuery.data?.exchangeId;
+      if (exchangeIdValue === undefined) throw new Error('교환 정보를 확인할 수 없어요.');
+      await proposeAppointment(exchangeIdValue, {
+        timeType: draft.isNow ? 'NOW' : 'SCHEDULED',
+        scheduledAt: draft.isNow ? undefined : draft.meetAt.toISOString(),
+        place: draft.place,
+        offeredItemIds: draft.itemIds.map(Number),
+      });
+      await refreshCards();
+    },
+
+    /** A-6 내가 보낸 제안 철회 */
+    withdraw: async (messageId: string) => {
+      const appointmentId = appointmentIdOf(messageId);
+      if (appointmentId === undefined) return store().withdraw(roomId, messageId);
+      await withdrawAppointment(appointmentId);
+      await refreshCards();
+    },
+
     /** A-4 약속 수락 */
     accept: async (messageId: string) => {
       const appointmentId = appointmentIdOf(messageId);
@@ -178,6 +212,17 @@ export function useChatRoom(roomId: string) {
       const room = await updateRoomNotification(chatRoomId, enabledValue);
       queryClient.setQueryData(chatKeys.room(chatRoomId), room);
       await queryClient.invalidateQueries({ queryKey: chatKeys.rooms });
+    },
+
+    /** BL-1 상대 차단. 채팅 목록과 이 방을 다시 읽는다 */
+    block: async () => {
+      const userId = roomQuery.data?.counterpart.userId;
+      if (userId === undefined) throw new Error('상대 정보를 확인할 수 없어요.');
+      await blockMember(userId);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: chatKeys.rooms }),
+        queryClient.invalidateQueries({ queryKey: chatKeys.room(chatRoomId) }),
+      ]);
     },
 
     /** CH-7 채팅방 나가기 */

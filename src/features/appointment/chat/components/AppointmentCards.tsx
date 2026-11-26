@@ -1,7 +1,6 @@
 import { ArrowsLeftRightIcon } from 'phosphor-react-native/src/icons/ArrowsLeftRight';
 import { CalendarCheckIcon } from 'phosphor-react-native/src/icons/CalendarCheck';
 import { ClockIcon } from 'phosphor-react-native/src/icons/Clock';
-import { DotsThreeVerticalIcon } from 'phosphor-react-native/src/icons/DotsThreeVertical';
 import { MapPinIcon } from 'phosphor-react-native/src/icons/MapPin';
 import { Text, View } from 'react-native';
 
@@ -10,12 +9,17 @@ import { Button, Icon, type IconComponent } from '@/shared/components';
 
 import type { Appointment, ProposalState } from '../types';
 import { formatClock, formatDateDivider, formatShortDate } from '../utils/formatTime';
-import { WIRE } from './wire';
 
-// E 채팅·약속-5: 약속 제안 카드 (수락하면 '약속 확정' 카드로 바뀐다), 채팅방 상단 약속 배너
+// E-5 약속 제안 카드 (수락하면 '약속 확정' 카드로 바뀐다), E-5-4 채팅방 위 약속 배너
 
-/** 1차: 약속 전 알림은 30분 전으로 고정 (알림 선택은 2차) */
-const REMINDER_NOTE = '약속 30분 전에 알림을 보내드려요';
+/** 약속 시각 30분 뒤 F-1 교환 확인 카드가 온다 */
+const HELP_MESSAGE = '약속 30분 뒤, 교환했는지 물어볼게요';
+
+/** 끝난 제안 (BDS reserved/button state=unselected) */
+const CLOSED_LABEL: Partial<Record<ProposalState, string>> = {
+  rejected: '거절된 제안이에요',
+  withdrawn: '취소된 제안이에요',
+};
 
 const DETAIL_TEXT = 'font-sans text-label-md font-normal text-object-bold';
 
@@ -46,19 +50,30 @@ function ItemsRow({ names }: { names: string[] }) {
 }
 
 type ProposalCardProps = {
-  /** 내가 보낸 제안이면 수락할 수 없고 '수락 대기중' 으로 보인다 */
+  /** 내가 보낸 제안이면 수락할 수 없고 [약속 취소] 만 보인다 */
   mine: boolean;
   appointment: Appointment;
   state: ProposalState;
   onAccept: () => void;
+  /** 받은 제안 [제안 취소] (A-5 거절) */
   onReject: () => void;
+  /** 보낸 제안 [약속 취소] (A-6 철회) */
+  onWithdraw: () => void;
 };
 
 // BDS 메시지 버블 Chatbubble/reserveationcard
 // 흰 바탕 · 테두리 stroke/assistive · r12 · 안쪽 좌우 12 위아래 14 · 사이 10
 // 제목 body/md bold → 구분선 → 내용(사이 8) → 안내 문구 → 버튼 (Chatbubble/reserved/button)
-export function ProposalCard({ mine, appointment, state, onAccept, onReject }: ProposalCardProps) {
+export function ProposalCard({
+  mine,
+  appointment,
+  state,
+  onAccept,
+  onReject,
+  onWithdraw,
+}: ProposalCardProps) {
   const confirmed = state === 'accepted';
+  const closedLabel = CLOSED_LABEL[state];
 
   let footer = null;
   if (state === 'pending' && !mine) {
@@ -66,18 +81,25 @@ export function ProposalCard({ mine, appointment, state, onAccept, onReject }: P
     footer = (
       <View className="flex-row gap-1">
         <Button hierarchy="secondary" size="sm" onPress={onReject} className="flex-1">
-          거절
+          제안 취소
         </Button>
         <Button hierarchy="primary" size="sm" onPress={onAccept} className="flex-1">
           수락하기
         </Button>
       </View>
     );
-  } else if (!confirmed) {
+  } else if (state === 'pending') {
+    // state=sent: 회색 버튼 하나
+    footer = (
+      <Button hierarchy="secondary" size="sm" onPress={onWithdraw} className="self-stretch">
+        약속 취소
+      </Button>
+    );
+  } else if (closedLabel) {
     // state=unselected: 누를 수 없는 회색 버튼
     footer = (
       <Button hierarchy="secondary" size="sm" disabled className="self-stretch">
-        {state === 'pending' ? '수락 대기중' : '거절했어요'}
+        {closedLabel}
       </Button>
     );
   }
@@ -86,7 +108,7 @@ export function ProposalCard({ mine, appointment, state, onAccept, onReject }: P
     <View className="w-[250px] gap-2.5 rounded-12 border border-stroke-assistive bg-surface-standard px-3 py-3.5">
       <View className="gap-2">
         <Text className="font-sans text-body-md font-medium text-object-boldest">
-          {confirmed ? '약속 확정' : '약속을 제안해요'}
+          {confirmed ? '약속 확정' : '약속 제안'}
         </Text>
         <View className="gap-2">
           <View className="h-px bg-object-subtlest" />
@@ -102,26 +124,30 @@ export function ProposalCard({ mine, appointment, state, onAccept, onReject }: P
           </View>
         </View>
       </View>
-      {confirmed ? (
+      {closedLabel ? null : (
         <Text className="font-sans text-label-md font-normal text-object-assistive">
-          {REMINDER_NOTE}
+          {HELP_MESSAGE}
         </Text>
-      ) : null}
+      )}
       {footer}
     </View>
   );
 }
 
-/** 확정 약속이 있을 때 채팅방 위에 고정되는 한 줄 요약 (테두리 r8, 14 Regular) */
+/**
+ * E-5-4: 확정 약속이 있을 때 채팅방 위에 고정되는 한 줄 요약 (BDS Field/Control, accent 바탕 · 테두리 r8).
+ * 날짜 시간, 장소 순서. 교환이 끝나면 확정 약속이 없어져 사라진다
+ */
 export function AppointmentBanner({ appointment }: { appointment: Appointment }) {
   return (
-    <View className="mx-3 mt-2 flex-row items-center gap-2 rounded-8 border border-gray-75 bg-white px-2 py-[11px]">
-      <Icon icon={CalendarCheckIcon} size="lg" color={WIRE.normal} />
-      <Text numberOfLines={1} className="flex-1 font-sans text-label-md font-normal text-gray-600">
-        {`${formatShortDate(appointment.meetAt)} · ${formatClock(appointment.meetAt)} · ${appointment.place}`}
+    <View className="mx-4 mt-2 flex-row items-center gap-2 rounded-8 border border-accent-subtle bg-accent-subtlest px-3.5 py-3">
+      <Icon icon={CalendarCheckIcon} size="lg" weight="fill" color={semantic.accent.bolder} />
+      <Text
+        numberOfLines={1}
+        className="flex-1 font-sans text-label-md font-normal text-object-boldest"
+      >
+        {`${formatShortDate(appointment.meetAt)} ${formatClock(appointment.meetAt)}, ${appointment.place}`}
       </Text>
-      {/* 약속 상세(2-06)는 1차 범위 밖이라 아이콘만 둔다 */}
-      <Icon icon={DotsThreeVerticalIcon} size="lg" color={WIRE.normal} />
     </View>
   );
 }

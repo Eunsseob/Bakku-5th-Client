@@ -3,6 +3,7 @@ import { CaretRightIcon } from 'phosphor-react-native/src/icons/CaretRight';
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
+import { semantic } from '@/design-tokens';
 import { CompletionCard } from '@/features/completion/review';
 import { Icon } from '@/shared/components';
 
@@ -10,16 +11,20 @@ import type { ChatMessage, ExchangeItem } from '../types';
 import { formatClock, formatDateDivider } from '../utils/formatTime';
 import { ProposalCard } from './AppointmentCards';
 import { ItemConditionBadge } from './StatusBadges';
-import { WIRE } from './wire';
 
-/** 말풍선 글자: body/md 크기에 와이어프레임 행간 18 (BDS 에 15/18 스타일이 없다) */
+/** 말풍선 글자: body/md 크기에 행간 18 (BDS Chatbubble/message, 15/18 스타일이 따로 없다) */
 const BUBBLE_TEXT = 'text-body-md leading-[18px]';
 
+/** BDS Timedivider: [선 118] 날짜 label/sm subtle [선 118], 선은 stroke/subtle */
 export function DateDivider({ date }: { date: string }) {
   return (
-    <Text className="py-3 text-center font-sans text-label-sm font-normal text-gray-500">
-      {formatDateDivider(date)}
-    </Text>
+    <View className="flex-row items-center pb-1 pt-2">
+      <View className="h-px w-[118px] bg-stroke-subtle" />
+      <Text className="flex-1 text-center font-sans text-label-sm font-normal text-object-assistive">
+        {formatDateDivider(date)}
+      </Text>
+      <View className="h-px w-[118px] bg-stroke-subtle" />
+    </View>
   );
 }
 
@@ -55,68 +60,37 @@ function Row({
   );
 }
 
-/** 받은 교환 요청: 물건마다 사진 카드 하나 (247 × 사진 136) */
-function RequestItemCard({ item, onPress }: { item: ExchangeItem; onPress?: () => void }) {
+/**
+ * BDS Chatbubble/itemcard: 교환 요청 물건마다 카드 하나 (247 · r16 · 테두리 stroke/alpha/subtler)
+ * 사진 136 → [이름 body/md bold] [개봉 여부 배지 · 화살표 14]
+ */
+function ItemCard({ item, onPress }: { item: ExchangeItem; onPress?: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={item.name}
       onPress={onPress}
-      className="overflow-hidden rounded-12 bg-white"
+      className="w-[247px] overflow-hidden rounded-16 border border-stroke-alpha-subtler"
       style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
     >
       {item.imageUrl ? (
         <Image source={item.imageUrl} contentFit="cover" style={{ height: 136 }} />
       ) : (
-        <View className="h-[136px] bg-gray-75" />
+        <View className="h-[136px] bg-object-inverse-bolder" />
       )}
-      <View className="flex-row items-center gap-2.5 px-2.5 py-3">
-        <Text numberOfLines={1} className="flex-1 font-sans text-body-md font-medium text-black">
+      <View className="flex-row items-center gap-2.5 rounded-16 bg-surface-standard px-2.5 py-3">
+        <Text
+          numberOfLines={1}
+          className="flex-1 font-sans text-body-md font-medium text-object-bolder"
+        >
           {item.name}
         </Text>
-        <ItemConditionBadge condition={item.condition} />
+        <View className="flex-row items-center gap-1">
+          <ItemConditionBadge condition={item.condition} />
+          <Icon icon={CaretRightIcon} size="sm" color={semantic.object.alternative} />
+        </View>
       </View>
     </Pressable>
-  );
-}
-
-/** 보낸 교환 요청: 한 장짜리 목록 카드 */
-function RequestCard({
-  items,
-  onItemPress,
-}: {
-  items: ExchangeItem[];
-  onItemPress?: (item: ExchangeItem) => void;
-}) {
-  return (
-    <View className="gap-2 rounded-12 bg-white py-3">
-      <Text className="px-2.5 font-sans text-body-md font-medium text-gray-900">
-        교환 요청을 보냈어요
-      </Text>
-      <View className="h-px bg-gray-75" />
-      <View>
-        {items.map((item) => (
-          <Pressable
-            key={item.id}
-            accessibilityRole="button"
-            onPress={() => onItemPress?.(item)}
-            className="h-11 flex-row items-center gap-2 px-2.5"
-            style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-          >
-            <Text
-              numberOfLines={1}
-              className="shrink font-sans text-body-sm font-normal text-gray-700"
-            >
-              {item.name}
-            </Text>
-            <ItemConditionBadge condition={item.condition} />
-            <View className="ml-auto">
-              <Icon icon={CaretRightIcon} size="md" color={WIRE.assistive} />
-            </View>
-          </Pressable>
-        ))}
-      </View>
-    </View>
   );
 }
 
@@ -125,6 +99,8 @@ type MessageItemProps = {
   onRequestItemPress?: (item: ExchangeItem) => void;
   onAcceptProposal?: (messageId: string) => void;
   onRejectProposal?: (messageId: string) => void;
+  /** 내가 보낸 제안 [약속 취소] (A-6 철회) */
+  onWithdrawProposal?: (messageId: string) => void;
   /** F-1 [무사히 교환했어요] */
   onCompleteExchange?: (messageId: string) => void;
   /** F-1 [교환하지 못했어요] */
@@ -136,6 +112,7 @@ export function MessageItem({
   onRequestItemPress,
   onAcceptProposal,
   onRejectProposal,
+  onWithdrawProposal,
   onCompleteExchange,
   onCancelExchange,
 }: MessageItemProps) {
@@ -144,7 +121,7 @@ export function MessageItem({
   if (message.type === 'system') {
     // 서버 시스템 메시지 · 따로 그릴 카드가 없는 카드: 가운데 회색 안내
     return (
-      <Text className="self-center px-4 py-1 text-center font-sans text-label-sm font-normal text-gray-500">
+      <Text className="self-center px-4 py-1 text-center font-sans text-label-sm font-normal text-object-alternative">
         {message.text}
       </Text>
     );
@@ -174,23 +151,20 @@ export function MessageItem({
           state={message.state}
           onAccept={() => onAcceptProposal?.(message.id)}
           onReject={() => onRejectProposal?.(message.id)}
+          onWithdraw={() => onWithdrawProposal?.(message.id)}
         />
       </Row>
     );
   }
 
   if (message.type === 'request') {
-    if (mine) {
-      return (
-        <View className="w-[247px] self-end">
-          <RequestCard items={message.items} onItemPress={onRequestItemPress} />
-        </View>
-      );
-    }
+    // BDS Chatbubble/items (E-2-1 · E-2-2): 받은 쪽 · 보낸 쪽 모두 물건마다 카드 + 시각
     return (
-      <View className="w-[247px] gap-2 self-start">
+      <View className="gap-5">
         {message.items.map((item) => (
-          <RequestItemCard key={item.id} item={item} onPress={() => onRequestItemPress?.(item)} />
+          <Row key={item.id} mine={mine} sentAt={message.sentAt} fullWidth>
+            <ItemCard item={item} onPress={() => onRequestItemPress?.(item)} />
+          </Row>
         ))}
       </View>
     );
@@ -209,11 +183,15 @@ export function MessageItem({
     );
   }
 
+  // BDS Chatbubble/message: 최대 247 · 안쪽 10·8 · r12
+  // received: accent/bold 바탕 흰 글자, sent: surface/deeper 바탕 gray/800 글자
   return (
     <Row mine={mine} sentAt={message.sentAt}>
-      <View className={`rounded-12 px-2.5 py-2 ${mine ? 'bg-gray-600' : 'bg-white'}`}>
+      <View
+        className={`max-w-[247px] rounded-12 px-2.5 py-2 ${mine ? 'bg-surface-deeper' : 'bg-accent-bold'}`}
+      >
         <Text
-          className={`font-sans font-normal ${BUBBLE_TEXT} ${mine ? 'text-white' : 'text-gray-850'}`}
+          className={`font-sans font-normal ${BUBBLE_TEXT} ${mine ? 'text-gray-800' : 'text-object-inverse-boldest'}`}
         >
           {message.text}
         </Text>

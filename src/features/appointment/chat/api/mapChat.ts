@@ -106,7 +106,9 @@ export function toAppointment(appointment: AppointmentResponse): Appointment {
 function toProposalState(status: AppointmentStatus): ProposalState {
   if (status === 'PROPOSED') return 'pending';
   if (status === 'CONFIRMED' || status === 'COMPLETED' || status === 'NOT_MET') return 'accepted';
-  return 'rejected';
+  if (status === 'REJECTED' || status === 'AUTO_REJECTED') return 'rejected';
+  // WITHDRAWN · EXPIRED · CANCELED
+  return 'withdrawn';
 }
 
 function toCompletionState(confirmation: ConfirmationResponse | null): CompletionState {
