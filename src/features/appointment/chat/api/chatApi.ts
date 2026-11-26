@@ -167,3 +167,11 @@ export function updateRoomNotification(chatRoomId: number, enabled: boolean) {
 export function leaveChatRoom(chatRoomId: number) {
   return apiData<LeaveChatRoomResponse>({ method: 'POST', url: `${roomUrl(chatRoomId)}/leave` });
 }
+
+/**
+ * Swagger user BL-1 차단. 서로의 글 · 채팅이 보이지 않고 예약중인 약속은 자동 취소된다.
+ * 이미 차단한 회원이면 200 으로 기존 차단을 돌려준다.
+ */
+export function blockMember(userId: number) {
+  return apiData<unknown>({ method: 'POST', url: '/v1/members/me/blocks', data: { userId } });
+}

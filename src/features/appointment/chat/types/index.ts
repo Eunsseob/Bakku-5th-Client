@@ -50,13 +50,24 @@ export type Appointment = {
   isNow: boolean;
 };
 
+/** 약속 잡기(E-4-1)에서 고른 값. 서버 A-1 약속 제안 본문이 된다 */
+export type AppointmentDraft = {
+  /** 지금 바로 */
+  isNow: boolean;
+  /** 만나는 시각. 지금 바로면 보내는 시각 */
+  meetAt: Date;
+  place: { name: string; address?: string; lat: number; lng: number };
+  /** 교환할 굿즈 (ExchangeItem.id) */
+  itemIds: string[];
+};
+
 /**
- * 약속 제안 카드 상태.
- * pending: 받는 쪽은 [거절] [수락하기], 보낸 쪽은 '수락 대기중'
+ * 약속 제안 카드 상태 (BDS Chatbubble/reserve).
+ * pending: 받는 쪽은 [제안 취소] [수락하기], 보낸 쪽은 [약속 취소]
  * accepted: 카드가 '약속 확정' 카드로 바뀐다
- * rejected: '거절했어요'
+ * rejected: 거절된 제안 · withdrawn: 철회 · 만료 · 취소된 제안 (누를 수 없는 버튼)
  */
-export type ProposalState = 'pending' | 'accepted' | 'rejected';
+export type ProposalState = 'pending' | 'accepted' | 'rejected' | 'withdrawn';
 
 export type ChatMessage =
   | (MessageBase & { type: 'text'; text: string })

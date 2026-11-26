@@ -54,7 +54,7 @@ export function ChatListItem({ room, onPress }: ChatListItemProps) {
       accessibilityRole="button"
       accessibilityLabel={`${room.nickname} 채팅방${room.unreadCount ? `, 안 읽은 메시지 ${room.unreadCount}개` : ''}`}
       onPress={onPress}
-      className="flex-row items-center gap-3 px-4 py-2.5"
+      className="h-14 flex-row items-center gap-3"
       style={({ pressed }) => ({ backgroundColor: pressed ? semantic.fill.subtlest : undefined })}
     >
       <ChatThumbnail uri={room.thumbnailUrl} />

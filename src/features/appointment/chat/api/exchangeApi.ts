@@ -3,7 +3,8 @@ import { apiData } from '@/shared/api/client';
 
 import type { ChatPostStatus } from './chatApi';
 
-// Swagger exchange: 채팅방에서 쓰는 것만 (E-2 교환 상세 · A-3 현재 약속 · A-4 수락 · A-5 거절)
+// Swagger exchange: 채팅방에서 쓰는 것만
+// (E-2 교환 상세 · A-1 제안 · A-3 현재 약속 · A-4 수락 · A-5 거절 · A-6 철회)
 
 export type PostSummaryResponse = {
   id: number;
@@ -75,6 +76,45 @@ export function getCurrentAppointment(exchangeId: number) {
   return apiData<AppointmentResponse | null>({
     method: 'GET',
     url: `/v1/exchanges/${exchangeId}/appointments/current`,
+  });
+}
+
+/** A-1 약속 장소 */
+export type PlaceRequest = {
+  /** 1~100자 */
+  name: string;
+  /** 최대 255자 */
+  address?: string;
+  lat: number;
+  lng: number;
+};
+
+/**
+ * A-1 약속 제안.
+ * SCHEDULED 면 scheduledAt 필수 (미래 · 분은 10의 배수 · 오늘~7일 후), NOW 면 보내지 않는다.
+ * offeredItemIds 는 고를 수 있는 아이템이 1개면 생략할 수 있다.
+ */
+export type ProposeAppointmentRequest = {
+  timeType: 'NOW' | 'SCHEDULED';
+  scheduledAt?: string;
+  place: PlaceRequest;
+  offeredItemIds?: number[];
+};
+
+/** A-1 약속 제안. 한 채팅방에 진행 중인 제안은 1개 */
+export function proposeAppointment(exchangeId: number, body: ProposeAppointmentRequest) {
+  return apiData<AppointmentResponse>({
+    method: 'POST',
+    url: `/v1/exchanges/${exchangeId}/appointments`,
+    data: body,
+  });
+}
+
+/** A-6 제안 철회 (제안한 사람이 자기 제안을 취소) */
+export function withdrawAppointment(appointmentId: number) {
+  return apiData<AppointmentResponse>({
+    method: 'POST',
+    url: `/v1/appointments/${appointmentId}/withdraw`,
   });
 }
 
