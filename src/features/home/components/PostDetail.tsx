@@ -1,13 +1,22 @@
 import { postCategories } from '@/features/post-create/api/createPost';
 import { useAuthStore } from '@/shared/api/useAuthStore';
-import { Button, Icon, IconButton, Thumbnail, TopNavigation } from '@/shared/components';
+import {
+  BottomSheet,
+  Button,
+  Icon,
+  ListItem,
+  Thumbnail,
+  Toast,
+  TopNavigation,
+} from '@/shared/components';
 import { InteractionLayer } from '@/shared/components/decoration/InteractionLayer';
 import { type InfiniteData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { CaretLeftIcon } from 'phosphor-react-native/src/icons/CaretLeft';
 import { CaretRightIcon } from 'phosphor-react-native/src/icons/CaretRight';
 import { DotsThreeVerticalIcon } from 'phosphor-react-native/src/icons/DotsThreeVertical';
+import { FlagIcon } from 'phosphor-react-native/src/icons/Flag';
+import { ListBulletsIcon } from 'phosphor-react-native/src/icons/ListBullets';
 import { PencilSimpleIcon } from 'phosphor-react-native/src/icons/PencilSimple';
 import { TrashIcon } from 'phosphor-react-native/src/icons/Trash';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
@@ -15,6 +24,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -22,7 +32,6 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import {
   deletePost,
@@ -128,7 +137,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 export default function PostDetail() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, reportCompleted } = useLocalSearchParams<{ id: string; reportCompleted?: string }>();
   const accessToken = useAuthStore((state) => state.accessToken);
   const sessionId = useAuthStore((state) => state.sessionId);
   const queryInstance = useId();
@@ -146,11 +155,20 @@ export default function PostDetail() {
   const photoWidth = width - insets.left - insets.right;
   const [mapOpen, setMapOpen] = useState(false);
   const [postMenuOpen, setPostMenuOpen] = useState(false);
+  const [exchangeSheetOpen, setExchangeSheetOpen] = useState(false);
+  const pendingExchangeRoute = useRef<'/post/request' | '/post/select-offer' | null>(null);
+  const [dismissedReport, setDismissedReport] = useState<string>();
   const [deleteBusy, setDeleteBusy] = useState(false);
   const deleteInProgress = useRef(false);
   const [photoIndex, setPhotoIndex] = useState(0);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now);
+  const showReportToast = !!detail.data && !!reportCompleted && reportCompleted !== dismissedReport;
+  useEffect(() => {
+    if (!showReportToast) return;
+    const timeout = setTimeout(() => setDismissedReport(reportCompleted), 3000);
+    return () => clearTimeout(timeout);
+  }, [reportCompleted, showReportToast]);
   const images = detail.data?.images;
   const photos = useMemo(() => {
     if (!images || !accessToken) return [];
@@ -330,6 +348,14 @@ export default function PostDetail() {
   const authorName = post.author.nickname;
   const showAction = !post.isMine || requestCount > 0;
   const actionDisabled = !post.isMine && !post.chatRoomId && !post.canRequest;
+  const canOpenExchangeSheet = !post.isMine && !post.chatRoomId && post.canRequest;
+  const closeExchangeSheet = () => setExchangeSheetOpen(false);
+  const openExchangeRoute = (pathname: '/post/request' | '/post/select-offer') => {
+    if (pendingExchangeRoute.current) return;
+    if (Platform.OS === 'ios') pendingExchangeRoute.current = pathname;
+    closeExchangeSheet();
+    if (Platform.OS !== 'ios') router.push({ pathname, params: { id } });
+  };
   const actionLabel = post.isMine
     ? `받은 요청 ${requestCount}개 보기`
     : post.chatRoomId
@@ -352,6 +378,25 @@ export default function PostDetail() {
       style={{ paddingLeft: insets.left, paddingRight: insets.right }}
     >
       <Stack.Screen options={{ headerShown: false }} />
+      <TopNavigation
+        type="screen"
+        onBack={goBack}
+        actions={[
+          {
+            icon: DotsThreeVerticalIcon,
+            accessibilityLabel: '게시글 더보기',
+            onPress: () => {
+              if (__DEV__ && post.isMine)
+                console.info('[post-delete] menu opened', {
+                  postId: id,
+                  status: post.status,
+                  canDelete: post.status === 'AVAILABLE',
+                });
+              setPostMenuOpen(true);
+            },
+          },
+        ]}
+      />
       <ScrollView
         className="flex-1"
         contentInsetAdjustmentBehavior="never"
@@ -414,45 +459,6 @@ export default function PostDetail() {
               <Text className="font-sans text-[13px] text-[#99A1AF]">사진</Text>
             </View>
           )}
-          <Svg pointerEvents="none" width="100%" height="100%" style={{ position: 'absolute' }}>
-            <Defs>
-              <LinearGradient id="photoShade" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor="#000000" stopOpacity={0.16} />
-                <Stop offset="1" stopColor="#000000" stopOpacity={0} />
-              </LinearGradient>
-            </Defs>
-            <Rect width="100%" height="100%" fill="url(#photoShade)" />
-          </Svg>
-          <View
-            pointerEvents="box-none"
-            className="absolute left-3 right-3 flex-row justify-between"
-            style={{ top: insets.top + 4 }}
-          >
-            <IconButton
-              icon={CaretLeftIcon}
-              accessibilityLabel="뒤로가기"
-              hierarchy="primary"
-              onPress={goBack}
-              className="h-11 w-11"
-            />
-            <IconButton
-              icon={DotsThreeVerticalIcon}
-              accessibilityLabel="게시글 더보기"
-              hierarchy="primary"
-              className="h-11 w-11"
-              onPress={() => {
-                if (post.isMine) {
-                  if (__DEV__)
-                    console.info('[post-delete] menu opened', {
-                      postId: id,
-                      status: post.status,
-                      canDelete: post.status === 'AVAILABLE',
-                    });
-                  setPostMenuOpen(true);
-                } else Alert.alert('게시글 메뉴', '신고 기능은 준비 중이에요.');
-              }}
-            />
-          </View>
           <View
             pointerEvents="none"
             style={{ position: 'absolute', bottom: 12, left: 12, flexDirection: 'row', gap: 8 }}
@@ -769,7 +775,12 @@ export default function PostDetail() {
             accessibilityRole="button"
             accessibilityState={{ disabled: actionDisabled }}
             disabled={actionDisabled}
-            onPress={() => Alert.alert(actionLabel, '이 화면은 준비 중이에요.')}
+            onPress={() => {
+              if (canOpenExchangeSheet) setExchangeSheetOpen(true);
+              else if (post.chatRoomId) {
+                router.push({ pathname: '/chat/[id]', params: { id: String(post.chatRoomId) } });
+              } else Alert.alert(actionLabel, '이 화면은 준비 중이에요.');
+            }}
             style={{
               height: 52,
               width: '100%',
@@ -794,6 +805,63 @@ export default function PostDetail() {
           </Pressable>
         </View>
       )}
+      <BottomSheet
+        visible={canOpenExchangeSheet && exchangeSheetOpen}
+        animationType="slide"
+        onRequestClose={closeExchangeSheet}
+        onDismiss={() => {
+          const pathname = pendingExchangeRoute.current;
+          pendingExchangeRoute.current = null;
+          if (pathname) router.push({ pathname, params: { id } });
+        }}
+      >
+        <View className="pt-2">
+          <ListItem
+            label="새로 작성하기"
+            leading={{ type: 'icon', icon: PencilSimpleIcon }}
+            trailing="chevronRight"
+            onPress={() => openExchangeRoute('/post/request')}
+          />
+          <ListItem
+            label="내 교환글에서 고르기"
+            leading={{ type: 'icon', icon: ListBulletsIcon }}
+            trailing="chevronRight"
+            onPress={() => openExchangeRoute('/post/select-offer')}
+          />
+        </View>
+        <View className="py-2.5">
+          <Button
+            hierarchy="secondary"
+            size="lg"
+            className="self-stretch"
+            onPress={closeExchangeSheet}
+          >
+            닫기
+          </Button>
+        </View>
+      </BottomSheet>
+      <BottomSheet
+        visible={!post.isMine && postMenuOpen}
+        animationType="slide"
+        onRequestClose={closePostMenu}
+      >
+        <View className="pt-2">
+          <ListItem
+            label="신고하기"
+            leading={{ type: 'icon', icon: FlagIcon }}
+            feedback="destructive"
+            onPress={() => {
+              closePostMenu();
+              router.push({ pathname: '/post/report', params: { id } });
+            }}
+          />
+        </View>
+        <View className="pb-2 pt-3">
+          <Button hierarchy="secondary" className="self-stretch" onPress={closePostMenu}>
+            닫기
+          </Button>
+        </View>
+      </BottomSheet>
       <Modal
         visible={post.isMine && postMenuOpen}
         transparent
@@ -947,6 +1015,15 @@ export default function PostDetail() {
           </View>
         </View>
       </Modal>
+      {showReportToast && (
+        <View
+          pointerEvents="none"
+          className="absolute left-2 right-2"
+          style={{ bottom: Math.max(114, insets.bottom + 72) }}
+        >
+          <Toast title="신고를 완료했어요." className="bg-[#2E303D]" />
+        </View>
+      )}
       {viewerIndex !== null && (
         <PostPhotoViewer
           photos={post.photos}

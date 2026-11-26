@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
-import { logout } from '@/features/auth/utils/logout';
+import { clearSessionAndReturnToLogin } from '@/features/auth/utils/logout';
 import {
   ActionArea,
   Checkbox,
@@ -54,7 +54,7 @@ export function WithdrawScreen() {
   // TODO: 명세상 카카오 · 네이버 연결 끊기(SDK)를 먼저 해야 한다. 로그인한 소셜 종류를 저장하게 되면 붙인다
   const leave = useMutation({
     mutationFn: () => withdraw(reason),
-    onSuccess: logout,
+    onSuccess: clearSessionAndReturnToLogin,
     onError: () => {
       setConfirming(false);
       setToast('탈퇴하지 못했어요. 잠시 후 다시 시도해 주세요');
