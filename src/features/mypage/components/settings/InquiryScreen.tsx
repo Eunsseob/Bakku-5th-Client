@@ -9,23 +9,22 @@ import { Divider, MenuRow, Modal, TopNavigation } from '@/shared/components';
 // G-1-3. 설정 - 문의하기 (2729:30765). 항목을 누르면 문의 폼(웹)으로 간다.
 // G-1-3-1. 폼을 열지 못하면 이메일로 보내달라는 모달을 띄운다.
 
-/** TODO: 문의 폼 주소 · 문의 이메일이 정해지면 채운다 */
+/** TODO: 문의 폼 주소가 정해지면 채운다 */
 const INQUIRY_FORM_URL = '';
-const INQUIRY_EMAIL = '';
+/** Figma G-1-3-1 주석의 문의 이메일 */
+const INQUIRY_EMAIL = 'bakku.help@gmail.com';
 
+// 이번 출시 유형 5개 (Figma 주석 G-08-1)
 const TOPICS = [
   '노쇼 신고 이의 제기',
   '교환 물품 문제',
-  '마감 임박건 취소 구제신청',
   '신고 및 제재문의',
   '오류 및 버그신고',
   '기타 문의',
 ];
 
-const NOTES = [
-  '선택하면 문의 폼으로 이동합니다',
-  '영업일 기준 3일 안에 등록한 이메일로 답변을 회신합니다',
-];
+// G-1-3-1 최신 문구
+const NOTES = ['선택하면 문의 폼으로 이동해요', '영업일 기준 3일 안에 등록한 이메일로 답변드려요'];
 
 export function InquiryScreen() {
   const [formFailed, setFormFailed] = useState(false);
@@ -47,7 +46,8 @@ export function InquiryScreen() {
             <MenuRow key={topic} label={topic} trailingIcon={CaretRightIcon} onPress={openForm} />
           ))}
         </View>
-        <Divider className="mx-[7.5px] mt-4" />
+        {/* 목록 끝(400)과 디바이더(478) 사이 78 */}
+        <Divider className="mx-[7.5px] mt-[78px]" />
         {/* 글머리 목록: label/sm · object/subtle, 왼쪽 13 + 들여쓰기 18 */}
         <View className="mt-3.5 pl-[13px]">
           {NOTES.map((note) => (
@@ -67,7 +67,7 @@ export function InquiryScreen() {
       <Modal
         visible={formFailed}
         title="문의 폼을 열지 못했어요"
-        description={`문의하고 싶은 내용을 이메일로 보내주세요${INQUIRY_EMAIL ? `\n${INQUIRY_EMAIL}` : ''}`}
+        description={`문의하고 싶은 내용을 이메일로 보내주세요\n${INQUIRY_EMAIL}`}
         primary={{ label: '닫기', onPress: () => setFormFailed(false) }}
         onRequestClose={() => setFormFailed(false)}
       />

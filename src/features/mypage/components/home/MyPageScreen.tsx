@@ -4,25 +4,21 @@ import { BellIcon } from 'phosphor-react-native/src/icons/Bell';
 import { CaretRightIcon } from 'phosphor-react-native/src/icons/CaretRight';
 import { ScrollView, Text, View } from 'react-native';
 
-import { Button, Divider, MenuRow, TopNavigation } from '@/shared/components';
+import { Button, Divider, MenuRow, TextDivider, TopNavigation } from '@/shared/components';
 
-import { getMyInfo } from '../api/mypageApi';
-import { mypageKeys } from '../api/queryKeys';
-import { useToastMessage } from '../hooks/useToastMessage';
-import { ToastOverlay } from './ToastOverlay';
+import { getMyInfo } from '../../api/mypageApi';
+import { mypageKeys } from '../../api/queryKeys';
+import { useToastMessage } from '../../hooks/useToastMessage';
+import { ToastOverlay } from '../common/ToastOverlay';
 
 // G. 마이페이지. Figma BDS '📝 화면 작업 > G. 마이페이지' (2729:30645)
-// 프로필 카드(MB-2 닉네임 · 교환 완료 횟수) · 내가 올린 교환글 · 설정
-
-const PREPARING = '준비 중이에요';
+// 프로필 카드(MB-2 닉네임 · 교환 횟수 · 매너 단계) [내 프로필] · 내가 올린 교환글 · 설정
 
 export function MyPageScreen() {
   const [toast, setToast] = useToastMessage();
   const me = useQuery({ queryKey: mypageKeys.me, queryFn: getMyInfo });
 
   const completed = me.data?.completedCount ?? 0;
-  let summary = '';
-  if (me.data) summary = completed > 0 ? `교환 완료 ${completed}회` : '첫 교환을 기다리고 있어요';
 
   return (
     <View className="flex-1 bg-surface-standard">
@@ -39,25 +35,33 @@ export function MyPageScreen() {
         ]}
       />
       <ScrollView contentContainerClassName="pb-6">
-        {/* 프로필 카드: 343 · 테두리 stroke/subtler · r16 · 안쪽 20 */}
-        <View className="mx-4 mt-4 flex-row items-center rounded-16 border border-stroke-subtler p-5">
-          <View className="flex-1 gap-0.5">
+        {/* 프로필 카드: 344 · 테두리 stroke/subtler · r16 · 안쪽 왼20 오14 위아래20. [내 프로필] → 내 프로필 */}
+        <View className="mx-4 mt-4 flex-row items-center rounded-16 border border-stroke-subtler py-5 pl-5 pr-3.5">
+          <View className="flex-1">
             <Text
               numberOfLines={1}
               className="font-sans text-title-1 font-semibold text-object-bolder"
             >
               {me.data?.nickname ?? (me.isError ? '정보를 불러오지 못했어요' : ' ')}
             </Text>
-            <Text
-              numberOfLines={1}
-              className="font-sans text-label-sm font-normal text-object-assistive"
-            >
-              {summary}
-            </Text>
+            {/* 교환 N 회 · 굿즈헌터 (label/sm · alternative) */}
+            <View className="flex-row items-center gap-1">
+              <Text className="font-sans text-label-sm font-normal text-object-alternative">
+                {me.data ? `교환 ${completed}회` : ' '}
+              </Text>
+              {me.data ? (
+                <>
+                  <TextDivider />
+                  {/* TODO: 매너 지표 단계(교환 연습생 · 굿즈헌터 · 프로 컬렉터) 기준이 정해지면 점수에 따라 바꾼다 */}
+                  <Text className="font-sans text-label-sm font-normal text-object-alternative">
+                    굿즈헌터
+                  </Text>
+                </>
+              ) : null}
+            </View>
           </View>
-          {/* TODO: MB-3 닉네임 수정(2차) */}
-          <Button hierarchy="secondary" size="xs" onPress={() => setToast(PREPARING)}>
-            프로필 수정
+          <Button hierarchy="secondary" size="sm" onPress={() => router.push('/me/profile')}>
+            내 프로필
           </Button>
         </View>
 

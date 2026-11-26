@@ -4,12 +4,12 @@ import { ScrollView, Text, View } from 'react-native';
 
 import { EmptyState, LabelButton, TopNavigation } from '@/shared/components';
 
-import { getBlockedMembers, unblockMember } from '../api/mypageApi';
-import { mypageKeys } from '../api/queryKeys';
-import { useToastMessage } from '../hooks/useToastMessage';
-import { ToastOverlay } from './ToastOverlay';
+import { getBlockedMembers, unblockMember } from '../../api/mypageApi';
+import { mypageKeys } from '../../api/queryKeys';
+import { useToastMessage } from '../../hooks/useToastMessage';
+import { ToastOverlay } from '../common/ToastOverlay';
 
-// G-1-4. 설정 - 차단 사용자 (2729:30848). BL-2 목록 · BL-3 차단 해제 후 토스트
+// G-1-4. 설정 - 차단 사용자 (2729:30848). BL-2 목록 · BL-3 차단 해제 후 토스트 · 0명 (G-5 5-13)
 
 const UNBLOCKED = '차단을 해제했습니다';
 
@@ -38,7 +38,7 @@ export function BlockedUsersScreen() {
       />
     );
   } else if (blocks.data && members.length === 0) {
-    body = <EmptyState title="차단한 사용자가 없어요." />;
+    body = <EmptyState title="차단한 사용자가 없어요" />;
   }
 
   return (

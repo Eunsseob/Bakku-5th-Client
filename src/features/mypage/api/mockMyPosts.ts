@@ -14,6 +14,8 @@ export type MyPost = {
   expiringSoon: boolean;
   wantedItem: string | null;
   thumbnailUrl: string | null;
+  /** 이 글로 채팅한 상대 닉네임 (G-4 '누구와 교환했나요?') */
+  chatPartners: string[];
 };
 
 const minutesAgo = (minutes: number) => new Date(Date.now() - minutes * 60_000).toISOString();
@@ -29,6 +31,7 @@ export const MOCK_MY_POSTS: MyPost[] = [
     expiringSoon: true,
     wantedItem: '치이카와 키링',
     thumbnailUrl: null,
+    chatPartners: ['굿즈요정', '치이카와덕후'],
   },
   {
     id: 102,
@@ -40,6 +43,7 @@ export const MOCK_MY_POSTS: MyPost[] = [
     expiringSoon: false,
     wantedItem: '마이멜로디 마스코트',
     thumbnailUrl: null,
+    chatPartners: ['산리오러버'],
   },
   {
     id: 103,
@@ -51,6 +55,7 @@ export const MOCK_MY_POSTS: MyPost[] = [
     expiringSoon: false,
     wantedItem: '뉴진스 포토카드',
     thumbnailUrl: null,
+    chatPartners: [],
   },
   {
     id: 104,
@@ -62,6 +67,7 @@ export const MOCK_MY_POSTS: MyPost[] = [
     expiringSoon: false,
     wantedItem: null,
     thumbnailUrl: null,
+    chatPartners: ['포켓몬마스터'],
   },
   {
     id: 105,
@@ -73,6 +79,7 @@ export const MOCK_MY_POSTS: MyPost[] = [
     expiringSoon: false,
     wantedItem: '우사기 뱃지',
     thumbnailUrl: null,
+    chatPartners: ['케로로중사', '짱구엄마'],
   },
   {
     id: 106,
@@ -84,6 +91,7 @@ export const MOCK_MY_POSTS: MyPost[] = [
     expiringSoon: false,
     wantedItem: '응원 타월',
     thumbnailUrl: null,
+    chatPartners: [],
   },
   {
     id: 107,
@@ -95,5 +103,6 @@ export const MOCK_MY_POSTS: MyPost[] = [
     expiringSoon: false,
     wantedItem: '응원봉 스트랩',
     thumbnailUrl: null,
+    chatPartners: ['하치와레'],
   },
 ];

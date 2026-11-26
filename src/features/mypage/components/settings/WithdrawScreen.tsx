@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
@@ -14,12 +14,11 @@ import {
   TopNavigation,
 } from '@/shared/components';
 
-import { getWithdrawalNotice, withdraw, type WithdrawalReason } from '../api/mypageApi';
-import { mypageKeys } from '../api/queryKeys';
-import { useToastMessage } from '../hooks/useToastMessage';
-import { ToastOverlay } from './ToastOverlay';
+import { withdraw, type WithdrawalReason } from '../../api/mypageApi';
+import { useToastMessage } from '../../hooks/useToastMessage';
+import { ToastOverlay } from '../common/ToastOverlay';
 
-// G-1-5. 설정 - 탈퇴하기 (2729:31401). MB-5 진행 중인 교환 안내 · 사유 선택 · 확인 체크
+// G-1-5. 설정 - 탈퇴하기 (2729:31401). 안내 · 사유 선택(선택) · 확인 체크
 // → G-1-5-1 확인 모달 (2840:31787) → MB-6
 
 const NOTICES = [
@@ -52,12 +51,6 @@ export function WithdrawScreen() {
   const [agreed, setAgreed] = useState(false);
   const [confirming, setConfirming] = useState(false);
 
-  const notice = useQuery({
-    queryKey: mypageKeys.withdrawalNotice,
-    queryFn: getWithdrawalNotice,
-  });
-  const inProgress = notice.data?.inProgressExchangeCount ?? 0;
-
   // TODO: 명세상 카카오 · 네이버 연결 끊기(SDK)를 먼저 해야 한다. 로그인한 소셜 종류를 저장하게 되면 붙인다
   const leave = useMutation({
     mutationFn: () => withdraw(reason),
@@ -76,12 +69,6 @@ export function WithdrawScreen() {
           탈퇴하기 전에 확인해주세요
         </Text>
         <View className="mt-4 gap-4 px-4">
-          {/* TODO: 진행 중인 교환 안내는 1차 와이어프레임 문구. 하이파이 디자인이 나오면 맞춘다 */}
-          {inProgress > 0 ? (
-            <Notice>
-              {`진행중인 교환이 ${inProgress}건 있어요. 탈퇴시 잡혀있는 약속은 자동으로 취소되고 상대에게 약속 취소 알림이 발송돼요`}
-            </Notice>
-          ) : null}
           {NOTICES.map((text) => (
             <Notice key={text}>{text}</Notice>
           ))}
@@ -124,18 +111,18 @@ export function WithdrawScreen() {
         }}
       />
 
-      {/* G-1-5-1: [탈퇴하기] 회색 · [취소] 진한 버튼 */}
+      {/* G-1-5-1: [취소] 회색 · [탈퇴하기] 진한 버튼 */}
       <Modal
         visible={confirming}
         title="정말 탈퇴할까요?"
         description={'탈퇴시 계정을 다시 복구할 수 없어요\n재가입은 7일 후 가능해요'}
-        primary={{ label: '취소', onPress: () => setConfirming(false) }}
-        secondary={{
+        primary={{
           label: '탈퇴하기',
           onPress: () => {
             if (!leave.isPending) leave.mutate();
           },
         }}
+        secondary={{ label: '취소', onPress: () => setConfirming(false) }}
         onRequestClose={() => setConfirming(false)}
       />
       <ToastOverlay message={toast} />
