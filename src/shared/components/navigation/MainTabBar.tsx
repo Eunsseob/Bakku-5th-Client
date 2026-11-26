@@ -1,5 +1,4 @@
 import { router } from 'expo-router';
-import { MapPinIcon } from 'phosphor-react-native/src/icons/MapPin';
 
 import { BottomNavigation, type BottomNavigationItem } from './BottomNavigation';
 import {
@@ -15,8 +14,6 @@ import {
 // 아이콘은 Figma UI-Flow '(현)UI 전개 시안' 기준: 선택된 탭은 채운 모양, 나머지는 테두리 모양
 const TABS = [
   { key: 'home', label: '홈', icon: HomeOutlinedIcon, selectedIcon: HomeFilledIcon },
-  // Figma 화면에는 없는 개발용 탭
-  { key: 'exchange-map', label: '교환 지도', icon: MapPinIcon },
   { key: 'chat', label: '채팅', icon: MessageOutlinedIcon, selectedIcon: MessageFilledIcon },
   { key: 'mypage', label: '마이', icon: UserOutlinedIcon, selectedIcon: UserFilledIcon },
 ] as const satisfies readonly BottomNavigationItem[];

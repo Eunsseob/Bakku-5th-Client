@@ -1,8 +1,6 @@
-import { Tag } from '@/shared/components';
+import { Badge, type BadgeHierarchy, type BadgeVariant, Tag } from '@/shared/components';
 
 import type { ExchangeStatus, ItemCondition } from '../types';
-
-// BDS Tag secondary sm (Figma BDS '✅F. 교환 완료' 채팅방 상단 배지: 테두리 없는 회색)
 
 const CONDITION_LABEL: Record<ItemCondition, string> = {
   sealed: '미개봉',
@@ -15,20 +13,38 @@ export function ItemConditionBadge({ condition }: { condition?: ItemCondition })
   return <Tag hierarchy="secondary">{CONDITION_LABEL[condition]}</Tag>;
 }
 
-const STATUS_LABEL: Record<ExchangeStatus, string> = {
-  available: '교환 가능',
-  reserved: '예약중',
-  completed: '교환 완료',
+type StatusBadgeStyle = { label: string; hierarchy: BadgeHierarchy; variant: BadgeVariant };
+
+/** BDS Chatstate/state: 채팅방 상단 교환글 상태 (Badge lg) */
+const ROOM_STATUS: Record<ExchangeStatus, StatusBadgeStyle> = {
+  available: { label: '교환 가능', hierarchy: 'accent', variant: 'alpha' },
+  reserved: { label: '예약중', hierarchy: 'secondary', variant: 'solid' },
+  completed: { label: '교환 완료', hierarchy: 'tertiary', variant: 'outlined' },
 };
 
-/** 교환글 상태. 채팅 목록에서는 진행 중(available)일 때 표시하지 않는다 */
-export function ExchangeStatusBadge({
-  status,
-  hideAvailable = false,
-}: {
-  status: ExchangeStatus;
-  hideAvailable?: boolean;
-}) {
-  if (status === 'available' && hideAvailable) return null;
-  return <Tag hierarchy="secondary">{STATUS_LABEL[status]}</Tag>;
+/** BDS Chatlist/state: 채팅 목록 상태 (Badge md). 교환 가능(default)은 배지가 없다 */
+const LIST_STATUS: Partial<Record<ExchangeStatus, StatusBadgeStyle>> = {
+  reserved: { label: '예약중', hierarchy: 'secondary', variant: 'alpha' },
+  completed: { label: '교환완료', hierarchy: 'tertiary', variant: 'outlined' },
+};
+
+/** 채팅방 상단 교환글 상태 */
+export function ExchangeStatusBadge({ status }: { status: ExchangeStatus }) {
+  const { label, hierarchy, variant } = ROOM_STATUS[status];
+  return (
+    <Badge hierarchy={hierarchy} variant={variant} size="lg">
+      {label}
+    </Badge>
+  );
+}
+
+/** 채팅 목록 닉네임 옆 상태 */
+export function ChatListStatusBadge({ status }: { status: ExchangeStatus }) {
+  const style = LIST_STATUS[status];
+  if (!style) return null;
+  return (
+    <Badge hierarchy={style.hierarchy} variant={style.variant} size="md">
+      {style.label}
+    </Badge>
+  );
 }

@@ -130,9 +130,10 @@ const THEME: Record<BadgeTheme, Record<BadgeVariant, Colors>> = {
   },
 };
 
+// lg: r8 · label/sm bold, md: r6 · label/xs bold (BDS 'bold' = SemiBold)
 const SIZES: Record<BadgeSize, { container: string; text: string }> = {
-  lg: { container: 'gap-[3px] rounded-md px-1.5 py-0.5', text: 'text-label-sm' },
-  md: { container: 'gap-0.5 rounded px-1 py-px', text: 'text-label-xs' },
+  lg: { container: 'gap-[3px] rounded-8 px-1.5 py-0.5', text: 'text-label-sm' },
+  md: { container: 'gap-0.5 rounded-6 px-1 py-px', text: 'text-label-xs' },
 };
 
 export function Badge({
@@ -153,7 +154,7 @@ export function Badge({
       className={`flex-row items-center justify-center self-start ${sizes.container} ${colors.container} ${muted ? 'opacity-[0.36]' : ''} ${className ?? ''}`}
     >
       {leadingIcon ? <Icon icon={leadingIcon} size="xs" color={colors.content} /> : null}
-      <Text className={`font-sans font-medium ${sizes.text} ${colors.text}`}>{children}</Text>
+      <Text className={`font-sans font-semibold ${sizes.text} ${colors.text}`}>{children}</Text>
     </View>
   );
 }

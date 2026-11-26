@@ -4,72 +4,97 @@ import { useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Icon } from '@/shared/components';
+import { semantic } from '@/design-tokens';
+import { Icon, type IconComponent, InteractionLayer } from '@/shared/components';
 
-import { WIRE } from './wire';
+// BDS 메시지 작성 Chat Input (ChatInput/Default)
+// 흰 바탕 안쪽 8 · 아래 safe area / 회색 칸(surface/deeper, r24, 안쪽 8) 안에
+// [+ 버튼 36] [메시지 label/lg normal, 안쪽 8, 최대 148] [보내기 36], 버튼은 아래 정렬
+
+/** 둥근 아이콘 버튼: 안쪽 8 + 아이콘 20, 누르면 인터랙션 레이어(바깥 3, r8) */
+function RoundIconButton({
+  icon,
+  accessibilityLabel,
+  container,
+  content,
+  overlay,
+  disabled,
+  onPress,
+}: {
+  icon: IconComponent;
+  accessibilityLabel: string;
+  container: string;
+  content: string;
+  overlay: string;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled: !!disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      className={`items-center justify-center rounded-max p-2 ${container}`}
+    >
+      {({ pressed }) => (
+        <>
+          <Icon icon={icon} size="lg" color={content} />
+          <InteractionLayer pressed={pressed} color={overlay} inset={3} radius={8} />
+        </>
+      )}
+    </Pressable>
+  );
+}
 
 type ChatInputProps = {
   onSend: (text: string) => void;
   onPlusPress: () => void;
 };
 
-// 채팅방 하단 입력창. Figma UI-Flow '채팅·약속-2(입력중 / 2줄 이상)' 값 그대로
-// 회색 칸(안쪽 6) 안에 [+ 32] 8 [메시지 body/lg, 행간 26] [보내기 32]
-// 한 줄: 알약 모양, 32 줄 가운데에 글자(위아래 3) / 두 줄 이상: 모서리 20, 버튼은 아래 정렬, 사이 6
-
-/** body/lg 행간. 글자 높이가 한 줄 반을 넘으면 두 줄 이상으로 본다 */
-const LINE_HEIGHT = 26;
-
 export function ChatInput({ onSend, onPlusPress }: ChatInputProps) {
   const insets = useSafeAreaInsets();
   const [text, setText] = useState('');
-  const [multiline, setMultiline] = useState(false);
   const canSend = text.trim().length > 0;
 
   const send = () => {
     if (!canSend) return;
     onSend(text.trim());
     setText('');
-    setMultiline(false);
   };
 
   return (
-    <View className="bg-white px-2 pt-2" style={{ paddingBottom: insets.bottom + 8 }}>
-      <View
-        className={`flex-row items-end bg-gray-50 p-1.5 ${multiline ? 'rounded-[20px]' : 'rounded-max'}`}
-      >
-        <Pressable
-          accessibilityRole="button"
+    <View className="bg-surface-standard px-2 pt-2" style={{ paddingBottom: insets.bottom + 8 }}>
+      <View className="flex-row items-end gap-1.5 rounded-24 bg-surface-deeper p-2">
+        <RoundIconButton
+          icon={PlusIcon}
           accessibilityLabel="사진, 약속 잡기 등 더보기"
+          container="bg-object-inverse-boldest"
+          content={semantic.object.bolder}
+          overlay={semantic.object.bolder}
           onPress={onPlusPress}
-          className={`size-8 items-center justify-center rounded-full bg-white ${multiline ? 'mr-1.5' : 'mr-2'}`}
-        >
-          <Icon icon={PlusIcon} size="lg" color={WIRE.strong} />
-        </Pressable>
+        />
         <TextInput
           value={text}
           onChangeText={setText}
           multiline
-          placeholder="메세지를 입력하세요."
-          placeholderTextColor={WIRE.alternative}
+          placeholder="메시지를 입력해주세요"
+          placeholderTextColor={semantic.object.subtle}
           accessibilityLabel="메시지 입력"
-          onContentSizeChange={(event) =>
-            setMultiline(event.nativeEvent.contentSize.height > LINE_HEIGHT * 1.5)
-          }
-          // 4줄(26 × 4)까지 늘어나고 그 뒤로는 안에서 스크롤
-          className={`max-h-[104px] min-h-8 flex-1 p-0 font-sans text-body-lg font-normal text-gray-700 ${multiline ? 'mr-1.5' : 'py-[3px]'}`}
-          style={{ textAlignVertical: multiline ? 'top' : 'center', includeFontPadding: false }}
+          className="max-h-[148px] flex-1 p-2 font-sans text-label-lg font-medium text-object-boldest"
+          style={{ textAlignVertical: 'top', includeFontPadding: false }}
         />
-        <Pressable
-          accessibilityRole="button"
+        {/* Figma 에는 비활성 모양이 따로 없어 같은 모양으로 두고, 빈 글은 보내지 않는다 */}
+        <RoundIconButton
+          icon={ArrowUpIcon}
           accessibilityLabel="보내기"
-          accessibilityState={{ disabled: !canSend }}
+          container="bg-object-neutral"
+          content={semantic.object.inverse.boldest}
+          overlay={semantic.surface.standard}
           disabled={!canSend}
           onPress={send}
-          className={`size-8 items-center justify-center rounded-full ${canSend ? 'bg-gray-600' : 'bg-white'}`}
-        >
-          <Icon icon={ArrowUpIcon} size="lg" color={canSend ? WIRE.white : WIRE.assistive} />
-        </Pressable>
+        />
       </View>
     </View>
   );
