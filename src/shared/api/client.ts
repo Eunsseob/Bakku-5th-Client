@@ -82,15 +82,43 @@ async function refreshTokens(sessionId: number, refreshToken: string) {
   if (refreshInFlight?.sessionId === sessionId) return refreshInFlight.promise;
 
   const promise = (async () => {
-    const { data } = await apiClient.post<ApiResponse<AuthTokens | undefined>>(
-      '/v1/auth/token/refresh',
-      { refreshToken },
-      { headers: { Authorization: false } },
-    );
-    if (!data?.success || !data.data?.accessToken || !data.data.refreshToken) {
-      throw new Error('재발급 응답에 인증 토큰이 없어요.');
+    let token = refreshToken;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const { data } = await apiRequest<ApiResponse<AuthTokens | undefined>>(
+          { method: 'POST', url: '/v1/auth/token/refresh', data: { refreshToken: token } },
+          { auth: false },
+        );
+        if (!data?.success || !data.data?.accessToken || !data.data.refreshToken) {
+          throw Object.assign(new Error(data?.message || '재발급 응답에 인증 토큰이 없어요.'), {
+            code: data?.code,
+          });
+        }
+        useAuthStore.getState().rotateTokens(data.data, sessionId);
+        return;
+      } catch (error) {
+        const code = isAxiosError<ApiErrorBody>(error)
+          ? error.response?.data?.code
+          : (error as { code?: string } | null)?.code;
+        const current = useAuthStore.getState();
+        if (current.sessionId === sessionId) {
+          if (
+            code === 'AUTH_005' &&
+            attempt === 0 &&
+            current.refreshToken &&
+            current.refreshToken !== token
+          ) {
+            token = current.refreshToken;
+            continue;
+          }
+          if (code === 'AUTH_004' || code === 'MEMBER_003') {
+            const { clearSessionAndReturnToLogin } = await import('@/features/auth/utils/logout');
+            if (useAuthStore.getState().sessionId === sessionId) clearSessionAndReturnToLogin();
+          }
+        }
+        throw error;
+      }
     }
-    useAuthStore.getState().rotateTokens(data.data, sessionId);
   })();
   refreshInFlight = { sessionId, promise };
 
@@ -119,25 +147,13 @@ apiClient.interceptors.response.use(
           error.message,
         );
       }
-      if (error.response?.status === 401) {
+      if (error.response?.status === 401 || error.response?.data?.code === 'AUTH_002') {
         const config: AuthRequestConfig | undefined = error.config;
         const { accessToken, refreshToken, sessionId, clear } = useAuthStore.getState();
         if (config?.authSessionId === sessionId && accessToken) {
           const usedCurrentToken = config.headers.get('Authorization') === `Bearer ${accessToken}`;
-          if (!config.authRetried && error.response.data?.code === 'AUTH_002' && refreshToken) {
-            try {
-              if (usedCurrentToken) await refreshTokens(sessionId, refreshToken);
-            } catch (refreshError) {
-              const current = useAuthStore.getState();
-              if (
-                current.sessionId === sessionId &&
-                isAxiosError<ApiErrorBody>(refreshError) &&
-                ['AUTH_004', 'MEMBER_003'].includes(refreshError.response?.data?.code ?? '')
-              ) {
-                current.clear();
-              }
-              throw refreshError;
-            }
+          if (!config.authRetried && error.response?.data?.code === 'AUTH_002' && refreshToken) {
+            if (usedCurrentToken) await refreshTokens(sessionId, refreshToken);
             const current = useAuthStore.getState();
             if (current.sessionId === sessionId && current.accessToken) {
               config.authRetried = true;
