@@ -1,4 +1,6 @@
 import { isAxiosError, type AxiosRequestConfig } from 'axios';
+import { File } from 'expo-file-system';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import { Image, Platform } from 'react-native';
 
 import { apiRequest, type ApiResponse } from '@/shared/api/client';
@@ -65,7 +67,6 @@ async function requestPostApi<T>(config: AxiosRequestConfig, requestBody: unknow
 }
 
 async function compressPhoto(uri: string) {
-  const { ImageManipulator, SaveFormat } = await import('expo-image-manipulator');
   const { width, height } = await new Promise<{ width: number; height: number }>(
     (resolve, reject) => Image.getSize(uri, (width, height) => resolve({ width, height }), reject),
   );
@@ -85,12 +86,12 @@ async function compressPhoto(uri: string) {
   }
 }
 
-export async function uploadPostImages(photos: string[]) {
+export async function uploadPostImages(photos: string[], purpose: 'POST' | 'EXCHANGE' = 'POST') {
   const form = new FormData();
-  const fileSystem = Platform.OS === 'web' ? null : await import('expo-file-system');
+  const isWeb = Platform.OS === 'web';
   const temporaryUris: string[] = [];
   let totalBytes = 0;
-  form.append('purpose', 'POST');
+  form.append('purpose', purpose);
 
   try {
     for (const [index, uri] of photos.entries()) {
@@ -100,8 +101,8 @@ export async function uploadPostImages(photos: string[]) {
       temporaryUris.push(photo.uri);
       const name = `photo-${index + 1}.jpg`;
       let size: number;
-      if (fileSystem) {
-        size = new fileSystem.File(photo.uri).size;
+      if (!isWeb) {
+        size = new File(photo.uri).size;
         // React Native FormData accepts a URI-backed file part.
         form.append('files', { uri: photo.uri, type: 'image/jpeg', name } as unknown as Blob);
       } else {
@@ -124,7 +125,7 @@ export async function uploadPostImages(photos: string[]) {
         headers: { 'Content-Type': 'multipart/form-data' },
         timeout: 60_000,
       },
-      { purpose: 'POST', count: photos.length, totalBytes },
+      { purpose, count: photos.length, totalBytes },
     );
     const uploads = data?.data?.uploads;
     if (
@@ -139,7 +140,7 @@ export async function uploadPostImages(photos: string[]) {
   } finally {
     for (const uri of temporaryUris) {
       try {
-        if (fileSystem) new fileSystem.File(uri).delete();
+        if (!isWeb) new File(uri).delete();
         else if (uri.startsWith('blob:')) URL.revokeObjectURL(uri);
       } catch {
         // Temporary file cleanup should not change the upload result.

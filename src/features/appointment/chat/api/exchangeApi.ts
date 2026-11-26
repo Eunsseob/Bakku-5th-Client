@@ -46,6 +46,25 @@ export type ExchangeResponse = {
   createdAt: string;
 };
 
+export type CreateExchangeOffer =
+  | { offerType: 'POST'; offeredPostIds: number[] }
+  | {
+      offerType: 'NEW';
+      newItem: { imageKeys: string[]; name: string; opened: boolean; description: string | null };
+    };
+
+export async function createExchange(postId: number, offer: CreateExchangeOffer) {
+  const result = await apiData<{ chatRoomId: number }>({
+    method: 'POST',
+    url: '/v1/exchanges',
+    data: { postId, ...offer },
+  });
+  if (!result || !Number.isSafeInteger(result.chatRoomId) || result.chatRoomId <= 0) {
+    throw new Error('생성된 채팅방 정보를 확인할 수 없어요.');
+  }
+  return result.chatRoomId;
+}
+
 /** E-2 교환 상세 */
 export function getExchange(exchangeId: number) {
   return apiData<ExchangeResponse>({ method: 'GET', url: `/v1/exchanges/${exchangeId}` });

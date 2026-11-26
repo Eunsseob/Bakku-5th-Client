@@ -13,6 +13,7 @@ export type HomePost = {
   nowExchangeEndsAt: string | null;
   wantedItem: string | null;
   createdAt: string;
+  isMine?: boolean;
 };
 
 export type HomePostsPage = { content: HomePost[]; nextCursor: string | null; hasNext: boolean };

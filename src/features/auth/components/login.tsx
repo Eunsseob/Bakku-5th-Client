@@ -21,7 +21,7 @@ export default function Login() {
     }
     if (accessToken && refreshToken) {
       signup.reset();
-      useAuthStore.getState().setTokens({ accessToken, refreshToken });
+      useAuthStore.getState().setTokens({ accessToken, refreshToken }, deviceId);
       enterMainAfterAuth();
       return;
     }
