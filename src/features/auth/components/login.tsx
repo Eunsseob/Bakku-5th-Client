@@ -67,8 +67,10 @@ export default function Login() {
         appName: 'Bakku',
         consumerKey,
         consumerSecret,
-        serviceUrlSchemeIOS: 'bakku',
-        disableNaverAppAuthIOS: true,
+        // app.config.ts 의 NAVER_LOGIN_URL_SCHEME · 네이버 개발자센터 iOS URL Scheme 과 같은 값
+        serviceUrlSchemeIOS: 'bakkunaverlogin',
+        // 네이버 앱이 있으면 앱으로 먼저 로그인한다
+        disableNaverAppAuthIOS: false,
       });
       const { successResponse, failureResponse } = await NaverLogin.login();
       if (successResponse?.accessToken) {
