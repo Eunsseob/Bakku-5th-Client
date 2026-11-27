@@ -1,16 +1,28 @@
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 
 import { useAuthStore } from '@/shared/api/useAuthStore';
-import { socialLogin } from '../api/socialLogin';
+import { type SocialCredential, type SocialProvider, socialLogin } from '../api/socialLogin';
 import { useSignupStore } from '../store/useSignupStore';
 import { enterMainAfterAuth } from '../utils/enterMainAfterAuth';
 import LoginLayout from './LoginLayout';
 
 export default function Login() {
   const router = useRouter();
-  const authenticate = async (provider: 'kakao' | 'naver', token: string) => {
-    const { signupToken, accessToken, refreshToken, deviceId } = await socialLogin(provider, token);
+  // Apple 로그인은 iOS 에서만 지원된다 (Android · 웹은 false)
+  const [appleAvailable, setAppleAvailable] = useState(false);
+  useEffect(() => {
+    AppleAuthentication.isAvailableAsync()
+      .then(setAppleAvailable)
+      .catch(() => setAppleAvailable(false));
+  }, []);
+  const authenticate = async (provider: SocialProvider, credential: SocialCredential) => {
+    const { signupToken, accessToken, refreshToken, deviceId } = await socialLogin(
+      provider,
+      credential,
+    );
     const signup = useSignupStore.getState();
     if (signupToken) {
       signup.reset();
@@ -31,7 +43,7 @@ export default function Login() {
     try {
       const { login } = await import('@react-native-seoul/kakao-login');
       const { accessToken } = await login();
-      await authenticate('kakao', accessToken);
+      await authenticate('kakao', { socialAccessToken: accessToken });
     } catch (error: unknown) {
       Alert.alert(
         '카카오 로그인 실패',
@@ -60,7 +72,7 @@ export default function Login() {
       });
       const { successResponse, failureResponse } = await NaverLogin.login();
       if (successResponse?.accessToken) {
-        await authenticate('naver', successResponse.accessToken);
+        await authenticate('naver', { socialAccessToken: successResponse.accessToken });
         return;
       }
       if (failureResponse?.isCancel) return;
@@ -72,5 +84,28 @@ export default function Login() {
       );
     }
   };
-  return <LoginLayout onKakao={handleKakaoLogin} onNaver={handleNaverLogin} />;
+  const handleAppleLogin = async () => {
+    try {
+      const { identityToken, authorizationCode } = await AppleAuthentication.signInAsync({
+        requestedScopes: [AppleAuthentication.AppleAuthenticationScope.EMAIL],
+      });
+      if (!identityToken || !authorizationCode) {
+        throw new Error('Apple 로그인 정보를 받지 못했습니다.');
+      }
+      await authenticate('apple', { identityToken, authorizationCode });
+    } catch (error: unknown) {
+      if ((error as { code?: string } | null)?.code === 'ERR_REQUEST_CANCELED') return;
+      Alert.alert(
+        'Apple 로그인 실패',
+        error instanceof Error ? error.message : '잠시 후 다시 시도해 주세요.',
+      );
+    }
+  };
+  return (
+    <LoginLayout
+      onKakao={handleKakaoLogin}
+      onNaver={handleNaverLogin}
+      onApple={appleAvailable ? handleAppleLogin : undefined}
+    />
+  );
 }
