@@ -26,6 +26,8 @@ import {
   CompleteConfirmSheet,
   type ConfirmationRequest,
   type ConfirmResult,
+  type NotMetReason,
+  NotMetReasonSheet,
   useConfirmExchange,
 } from '@/features/completion/review';
 import { EmptyState, Icon, Modal, Toast, TopNavigation } from '@/shared/components';
@@ -142,6 +144,8 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   /** 교환 확정 시트를 띄운 교환 완료 확인 카드 */
   const [completingId, setCompletingId] = useState<string | null>(null);
+  /** 교환하지 못한 이유 시트(F-1-3)를 띄운 교환 완료 확인 카드 */
+  const [failingId, setFailingId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const scrollRef = useRef<ScrollViewInstance>(null);
 
@@ -219,13 +223,16 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
     if (messageId) answerCompletion(messageId, { answer: 'DONE' });
   };
 
-  /** [교환하지 못했어요] */
-  const failExchange = (messageId: string) => {
-    const card = room.messages.find((item) => item.id === messageId);
-    // TODO: 서버는 NOT_MET 에 이유(notMetReason)가 필수다. 이유를 어떻게 받을지 정해지면 서버 방도 보낸다.
-    if (card?.type === 'completion' && card.appointmentId === undefined) {
-      answerCompletion(messageId, { answer: 'NOT_MET', notMetReason: 'OTHER' });
-    }
+  /** F-1-3 [취소사유 보내기]: 이유와 함께 NOT_MET 으로 답한다 (F-3 약속이 취소됐어요) */
+  const sendNotMetReason = (reason: NotMetReason, detail?: string) => {
+    const messageId = failingId;
+    setFailingId(null);
+    if (!messageId) return;
+    answerCompletion(messageId, {
+      answer: 'NOT_MET',
+      notMetReason: reason,
+      notMetDetail: detail,
+    });
   };
 
   const selectRoomMenu = async (key: string) => {
@@ -341,7 +348,7 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
                       Promise.resolve(chat.withdraw(messageId)).catch(showError);
                     }}
                     onCompleteExchange={setCompletingId}
-                    onCancelExchange={failExchange}
+                    onCancelExchange={setFailingId}
                   />
                 </Fragment>
               );
@@ -423,6 +430,12 @@ export function ChatRoomScreen({ roomId }: { roomId: string }) {
         visible={completingId !== null}
         onCancel={() => setCompletingId(null)}
         onConfirm={confirmComplete}
+      />
+      {/* F-1-3: 교환하지 못한 이유 시트 */}
+      <NotMetReasonSheet
+        visible={failingId !== null}
+        onCancel={() => setFailingId(null)}
+        onSubmit={sendNotMetReason}
       />
     </View>
   );

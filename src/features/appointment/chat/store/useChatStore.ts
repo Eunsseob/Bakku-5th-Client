@@ -26,7 +26,7 @@ type ChatState = {
   /**
    * F-1 교환 확인 결과 반영.
    * completed: 카드가 '교환에 성공했어요!' 로, 글은 교환 완료
-   * cancelled: 카드가 '교환이 취소됐어요' 로, 글은 다시 교환 가능
+   * cancelled: 카드가 '약속이 취소됐어요' 로, 글은 다시 교환 가능
    */
   resolveCompletion: (roomId: string, messageId: string, state: ConfirmResult['state']) => void;
 };

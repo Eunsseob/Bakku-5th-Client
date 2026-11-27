@@ -24,7 +24,8 @@ const GRAY = primitive.gray as unknown as Record<number, string>;
 const TITLE: Record<CompletionState, string> = {
   asking: '교환을 완료했나요?',
   completed: '교환에 성공했어요!',
-  cancelled: '교환이 취소됐어요',
+  // F-3 교환 확정 메시지-실패
+  cancelled: '약속이 취소됐어요',
 };
 
 /** 아이콘 16 + label/md Regular */

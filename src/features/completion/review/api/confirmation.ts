@@ -5,9 +5,9 @@ import { apiData } from '@/shared/api/client';
 
 export type ConfirmationAnswer = 'DONE' | 'NOT_MET';
 
-/** 교환하지 못한 이유 */
+/** 교환하지 못한 이유 (F-1-3). SELF_ABSENT: 내가 약속 장소에 가지 못함 */
 export type NotMetReason =
-  'NO_SHOW' | 'ITEM_MISMATCH' | 'MONEY_DEMANDED' | 'MUTUAL_CANCEL' | 'OTHER';
+  'NO_SHOW' | 'SELF_ABSENT' | 'ITEM_MISMATCH' | 'MONEY_DEMANDED' | 'MUTUAL_CANCEL' | 'OTHER';
 
 export type ConfirmationRequest =
   | { answer: 'DONE' }
