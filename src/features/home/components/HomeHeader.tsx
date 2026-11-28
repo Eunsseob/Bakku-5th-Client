@@ -1,25 +1,42 @@
 import { Chip, TopNavigation } from '@/shared/components';
 import { BellIcon } from 'phosphor-react-native/src/icons/Bell';
 import { MagnifyingGlassIcon } from 'phosphor-react-native/src/icons/MagnifyingGlass';
-import { useRef, type ComponentRef } from 'react';
 import { ScrollView, View } from 'react-native';
 
-export type MenuAnchor = { x: number; y: number; width: number; height: number };
+const exchangeModes = ['지금 교환', '일반 교환'] as const;
+export type ExchangeMode = (typeof exchangeModes)[number];
 
 type Props = {
   location: string;
   category: string;
-  mode: string;
+  categories: string[];
+  mode: ExchangeMode | null;
   onRegionPress: () => void;
   onSearchPress: () => void;
   onNotificationsPress: () => void;
   onCategoryChange: (category: string) => void;
-  onModePress: (anchor: MenuAnchor) => void;
-  modeExpanded: boolean;
+  onModeChange: (mode: ExchangeMode | null) => void;
+  onResetFilters: () => void;
 };
 
 export default function HomeHeader(props: Props) {
-  const modeAnchor = useRef<ComponentRef<typeof View>>(null);
+  const chips = [
+    {
+      label: '전체',
+      selected: props.mode === null && props.category === '전체',
+      onPress: props.onResetFilters,
+    },
+    ...exchangeModes.map((mode) => ({
+      label: mode,
+      selected: props.mode === mode,
+      onPress: () => props.onModeChange(props.mode === mode ? null : mode),
+    })),
+    ...props.categories.map((label) => ({
+      label,
+      selected: props.category === label,
+      onPress: () => props.onCategoryChange(props.category === label ? '전체' : label),
+    })),
+  ];
   return (
     <View className="border-b border-[#E5E7EB] bg-white">
       <TopNavigation
@@ -41,38 +58,16 @@ export default function HomeHeader(props: Props) {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, gap: 8 }}
       >
-        <View ref={modeAnchor} collapsable={false}>
+        {chips.map(({ label, selected, onPress }) => (
           <Chip
-            size="lg"
-            hierarchy="primary"
-            trailingIconVisible
-            accessibilityState={{ expanded: props.modeExpanded }}
-            onPress={() =>
-              modeAnchor.current?.measureInWindow((x, y, width, height) =>
-                props.onModePress({ x, y, width, height }),
-              )
-            }
-            className="!h-10 !bg-[#364153] !px-3.5"
+            key={label}
+            hierarchy={selected ? 'primary' : 'secondary'}
+            accessibilityState={{ selected }}
+            onPress={onPress}
           >
-            {props.mode}
+            {label}
           </Chip>
-        </View>
-        {['캐릭터', '아이돌', '스포츠', '기타'].map((label) => {
-          const selected = props.category === label;
-          return (
-            <Chip
-              key={label}
-              size="lg"
-              hierarchy={selected ? 'primary' : 'secondary'}
-              accessibilityState={{ selected }}
-              onPress={() => props.onCategoryChange(selected ? '전체' : label)}
-              className={`!h-10 !px-0 ${selected ? '!bg-[#364153]' : '!bg-[#F3F4F6]'}`}
-              style={{ width: label === '기타' ? 57 : 69 }}
-            >
-              {label}
-            </Chip>
-          );
-        })}
+        ))}
       </ScrollView>
     </View>
   );

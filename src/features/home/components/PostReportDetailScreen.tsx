@@ -33,11 +33,13 @@ export type ReportReason = keyof typeof reportReasonDetails;
 export function PostReportDetailScreen({
   reason,
   onBack,
-  onComplete,
+  onSubmit,
+  submitting,
 }: {
   reason: ReportReason;
   onBack: () => void;
-  onComplete: () => void;
+  onSubmit: (detail?: string) => void;
+  submitting: boolean;
 }) {
   const { left, right } = useSafeAreaInsets();
   const { title, description } = reportReasonDetails[reason];
@@ -68,6 +70,7 @@ export function PostReportDetailScreen({
             <TextField
               accessibilityLabel="상세 설명 (필수)"
               multiline
+              maxLength={300}
               placeholder="신고 내용을 입력해주세요."
               value={details}
               onChangeText={setDetails}
@@ -79,10 +82,10 @@ export function PostReportDetailScreen({
         main={{
           label: '신고하기',
           hierarchy: 'accent',
-          disabled: requiresDetails && !details.trim(),
+          disabled: submitting || (requiresDetails && !details.trim()),
           onPress: () => {
             if (requiresDetails) Keyboard.dismiss();
-            onComplete();
+            onSubmit(requiresDetails ? details.trim() : undefined);
           },
         }}
       />

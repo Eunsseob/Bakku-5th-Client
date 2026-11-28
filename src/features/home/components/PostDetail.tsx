@@ -16,9 +16,9 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { CaretRightIcon } from 'phosphor-react-native/src/icons/CaretRight';
 import { ArrowsClockwiseIcon } from 'phosphor-react-native/src/icons/ArrowsClockwise';
 import { DotsThreeVerticalIcon } from 'phosphor-react-native/src/icons/DotsThreeVertical';
-import { FlagIcon } from 'phosphor-react-native/src/icons/Flag';
 import { ListBulletsIcon } from 'phosphor-react-native/src/icons/ListBullets';
 import { PencilSimpleIcon } from 'phosphor-react-native/src/icons/PencilSimple';
+import { SirenIcon } from 'phosphor-react-native/src/icons/Siren';
 import { TrashIcon } from 'phosphor-react-native/src/icons/Trash';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
@@ -849,7 +849,7 @@ export default function PostDetail() {
         <View className="pt-2">
           <ListItem
             label="신고하기"
-            leading={{ type: 'icon', icon: FlagIcon }}
+            leading={{ type: 'icon', icon: SirenIcon }}
             feedback="destructive"
             onPress={() => {
               closePostMenu();

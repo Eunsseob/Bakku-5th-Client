@@ -1,14 +1,12 @@
 import { useAuthStore } from '@/shared/api/useAuthStore';
-import { BottomSheet, Chip, Icon, ListItem, TopNavigation } from '@/shared/components';
-import { InteractionLayer } from '@/shared/components/decoration/InteractionLayer';
+import { BottomSheet, Chip, EmptyState, Fab, ListItem, TopNavigation } from '@/shared/components';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
-import { PlusIcon } from 'phosphor-react-native/src/icons/Plus';
-import { type ComponentRef, useCallback, useEffect, useRef, useState } from 'react';
+import { WarningCircleIcon } from 'phosphor-react-native/src/icons/WarningCircle';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  BackHandler,
   FlatList,
   Pressable,
   RefreshControl,
@@ -21,10 +19,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getHomePosts, homePostsKey } from '../api/homePosts';
 import { useExchangeStore } from '../store/useExchangeStore';
 import ExchangePostCard from './ExchangePostCard';
-import HomeHeader, { type MenuAnchor } from './HomeHeader';
+import HomeHeader, { type ExchangeMode } from './HomeHeader';
+import HomePostMenu from './HomePostMenu';
 
 const font = { fontFamily: 'Pretendard', includeFontPadding: false };
-const locations = ['모든 지역', '홍대', '용산', '성수', '신도림', '국제전자센터'];
+const locations = ['전체', '홍대', '용산', '성수', '신도림', '국제전자센터'];
 const regionSheetMinimumBottomInset = 34;
 const regionSheetHeaderHeight = 66;
 const categories = new Map<string, 'CHARACTER' | 'IDOL' | 'SPORTS' | 'ETC'>([
@@ -33,6 +32,7 @@ const categories = new Map<string, 'CHARACTER' | 'IDOL' | 'SPORTS' | 'ETC'>([
   ['스포츠', 'SPORTS'],
   ['기타', 'ETC'],
 ]);
+const categoryLabels = [...categories.keys()];
 const searchFilters = [
   { label: '전체', width: 57 },
   { label: '지금 교환', width: 84 },
@@ -42,31 +42,42 @@ const searchFilters = [
   { label: '스포츠', width: 69 },
 ] as const;
 const writeButtonSize = 56;
-const writeButtonRadius = writeButtonSize / 2;
+const writeButtonScreenBottom = 106;
 const bottomTabBarHeight = 48;
 const refreshScrollDistance = 48;
+
+function PostSeparator() {
+  return <View className="h-4" />;
+}
+
 export default function Home({ searchVisible = false }: { searchVisible?: boolean }) {
   const insets = useSafeAreaInsets();
   // The tab bar and its safe-area padding sit below the home screen.
-  const writeButtonBottom = Math.max(16, 106 - bottomTabBarHeight - insets.bottom);
-  const screen = useRef<ComponentRef<typeof View>>(null);
+  const writeButtonBottom = Math.max(
+    16,
+    writeButtonScreenBottom - bottomTabBarHeight - insets.bottom,
+  );
   const [category, setCategory] = useState('전체');
   const [location, setLocation] = useState('전체');
   const [regionSheetVisible, setRegionSheetVisible] = useState(false);
   const { height: windowHeight } = useWindowDimensions();
   const [now, setNow] = useState(Date.now);
-  useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 15_000);
-    return () => clearInterval(timer);
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      setNow(Date.now());
+      const timer = setInterval(() => setNow(Date.now()), 1000);
+      return () => clearInterval(timer);
+    }, []),
+  );
   const [query, setQuery] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
   const [searchFilter, setSearchFilter] = useState<(typeof searchFilters)[number]['label']>('전체');
-  const [mode, setMode] = useState('\uBAA8\uB4E0 \uAD50\uD658\uAE00');
+  const [mode, setMode] = useState<ExchangeMode | null>(null);
   const publishedPostId = useExchangeStore((state) => state.publishedPostId);
   const dismissPublishedToast = useExchangeStore((state) => state.dismissPublishedToast);
   const accessToken = useAuthStore((state) => state.accessToken);
   const sessionId = useAuthStore((state) => state.sessionId);
+  const [menu, setMenu] = useState<{ id: number; sessionId: number } | null>(null);
   const keyword = searchVisible ? query.replace(/\s/g, '').replace(/^#+/, '').toLowerCase() : '';
   const isSearching = searchVisible && Boolean(query.trim());
   const keywordLength = [...keyword].length;
@@ -80,7 +91,7 @@ export default function Home({ searchVisible = false }: { searchVisible?: boolea
 
   const filters = {
     category: categories.get(searchVisible ? searchFilter : category),
-    nowExchange: isSearching || mode === '모든 교환글' ? undefined : mode === '지금 교환',
+    nowExchange: searchVisible || mode === null ? undefined : mode === '지금 교환',
     keyword: isSearching ? keyword : undefined,
   };
   const canFetch =
@@ -111,34 +122,6 @@ export default function Home({ searchVisible = false }: { searchVisible?: boolea
       return () => clearTimeout(timer);
     }, [searchVisible, publishedPostId, dismissPublishedToast]),
   );
-  const [dropdown, setDropdown] = useState<{
-    x: number;
-    y: number;
-    width: number;
-  } | null>(null);
-  useFocusEffect(
-    useCallback(() => {
-      if (!dropdown) return;
-      const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
-        setDropdown(null);
-        return true;
-      });
-      return () => subscription.remove();
-    }, [dropdown]),
-  );
-  const openModeDropdown = (anchor: MenuAnchor) => {
-    screen.current?.measureInWindow((screenX, screenY, screenWidth, screenHeight) => {
-      const width = 160;
-      const menuHeight = 3 * 44 + 2;
-      const x = Math.max(8, Math.min(anchor.x - screenX, screenWidth - width - 8));
-      const below = anchor.y + anchor.height - screenY + 4;
-      const y =
-        below + menuHeight <= screenHeight - 8
-          ? below
-          : Math.max(8, anchor.y - screenY - menuHeight - 4);
-      setDropdown({ x, y, width });
-    });
-  };
   const uniquePosts = new Map(
     posts.data?.pages.flatMap((page) => page.content.map((post) => [post.id, post] as const)),
   );
@@ -156,20 +139,20 @@ export default function Home({ searchVisible = false }: { searchVisible?: boolea
     posts.isSuccess &&
     !posts.hasNextPage &&
     visiblePosts.length === 0;
+  const homeHasNoResults =
+    !searchVisible && posts.isSuccess && !posts.hasNextPage && visiblePosts.length === 0;
+  const centerEmptyState = searchHasNoResults || homeHasNoResults;
   const loadMore = () => {
     if (canFetch && posts.hasNextPage && !posts.isFetching)
       void posts.fetchNextPage({ cancelRefetch: false });
   };
   const refreshPosts = () => {
     if (!canFetch) return;
-    setDropdown(null);
     void posts.refetch({ cancelRefetch: posts.isFetchingNextPage });
   };
 
   return (
     <View
-      ref={screen}
-      collapsable={false}
       className="flex-1 bg-white"
       style={{
         paddingTop: insets.top,
@@ -196,17 +179,15 @@ export default function Home({ searchVisible = false }: { searchVisible?: boolea
         <HomeHeader
           location={location}
           category={category}
+          categories={categoryLabels}
           mode={mode}
-          modeExpanded={!!dropdown}
-          onRegionPress={() => {
-            setDropdown(null);
-            setRegionSheetVisible(true);
+          onRegionPress={() => setRegionSheetVisible(true)}
+          onModeChange={setMode}
+          onResetFilters={() => {
+            setCategory('전체');
+            setMode(null);
           }}
-          onModePress={openModeDropdown}
-          onSearchPress={() => {
-            setDropdown(null);
-            router.push('/search');
-          }}
+          onSearchPress={() => router.push('/search')}
           onNotificationsPress={() => Alert.alert('알림', '새로운 알림이 없어요.')}
           onCategoryChange={setCategory}
         />
@@ -239,18 +220,12 @@ export default function Home({ searchVisible = false }: { searchVisible?: boolea
       )}
       {(!searchVisible || isSearching) && (
         <View className="flex-1">
-          {!searchVisible && (
-            <View className="h-11 flex-row items-center justify-end px-4">
-              <Text style={font} className="text-[13px] leading-[18px] text-[#2E2E33]">
-                최신순
-              </Text>
-            </View>
-          )}
           <FlatList
             key={listKey}
             data={visiblePosts}
             keyboardShouldPersistTaps="handled"
             keyExtractor={(post) => String(post.id)}
+            ItemSeparatorComponent={PostSeparator}
             renderItem={({ item }) => (
               <ExchangePostCard
                 post={item}
@@ -259,6 +234,7 @@ export default function Home({ searchVisible = false }: { searchVisible?: boolea
                 onPress={() =>
                   router.push({ pathname: '/post/[id]', params: { id: String(item.id) } })
                 }
+                onMore={() => setMenu({ id: item.id, sessionId })}
               />
             )}
             onEndReached={() => {
@@ -287,10 +263,10 @@ export default function Home({ searchVisible = false }: { searchVisible?: boolea
               ) : undefined
             }
             contentContainerStyle={{
-              flexGrow: searchHasNoResults ? 1 : undefined,
-              justifyContent: searchHasNoResults ? 'center' : undefined,
+              flexGrow: centerEmptyState ? 1 : undefined,
+              justifyContent: centerEmptyState ? 'center' : undefined,
               paddingHorizontal: 16,
-              paddingTop: searchHasNoResults ? 0 : 8,
+              paddingTop: centerEmptyState ? 0 : 8,
               paddingBottom: searchVisible
                 ? insets.bottom + 16
                 : writeButtonBottom + writeButtonSize + 16,
@@ -315,6 +291,21 @@ export default function Home({ searchVisible = false }: { searchVisible?: boolea
                 >
                   일치하는 게시글이 없어요.
                 </Text>
+              ) : homeHasNoResults ? (
+                <EmptyState
+                  className="!px-0"
+                  icon={WarningCircleIcon}
+                  iconWeight="fill"
+                  title="이 지역에 등록된 게시글이 없어요."
+                  description="다른 지역에서 교환할 사람을 찾아보세요."
+                  action={{
+                    label: '모든 지역에서 보기',
+                    onPress: () => {
+                      if (location === '전체') refreshPosts();
+                      else setLocation('전체');
+                    },
+                  }}
+                />
               ) : (
                 <Text style={font} className="py-12 text-center text-[14px] text-[#737380]">
                   {posts.hasNextPage
@@ -338,38 +329,12 @@ export default function Home({ searchVisible = false }: { searchVisible?: boolea
             }
           />
           {!searchVisible && (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="교환 글쓰기"
-              onPress={() => router.push('/(main)/(post-create)/write')}
-              style={{
-                position: 'absolute',
-                right: 16,
-                bottom: writeButtonBottom,
-                width: writeButtonSize,
-                height: writeButtonSize,
-                borderRadius: writeButtonRadius,
-                backgroundColor: '#9C43FF',
-                alignItems: 'center',
-                justifyContent: 'center',
-                elevation: 4,
-                shadowColor: '#000000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.2,
-                shadowRadius: 4,
-              }}
-            >
-              {({ pressed }) => (
-                <>
-                  <Icon icon={PlusIcon} size="xl" color="#FFFFFF" />
-                  <InteractionLayer
-                    pressed={pressed}
-                    color="#000212D1"
-                    radius={writeButtonRadius}
-                  />
-                </>
-              )}
-            </Pressable>
+            <View className="absolute right-4" style={{ bottom: writeButtonBottom }}>
+              <Fab
+                accessibilityLabel="교환 글쓰기"
+                onPress={() => router.push('/(main)/(post-create)/write')}
+              />
+            </View>
           )}
         </View>
       )}
@@ -397,52 +362,8 @@ export default function Home({ searchVisible = false }: { searchVisible?: boolea
           </Pressable>
         </View>
       )}
-      {dropdown && (
-        <View className="absolute inset-0" style={{ zIndex: 50, elevation: 50 }}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="선택 메뉴 닫기"
-            className="absolute inset-0"
-            onPress={() => setDropdown(null)}
-          />
-          {dropdown && (
-            <View
-              accessibilityViewIsModal
-              style={{
-                position: 'absolute',
-                left: dropdown.x,
-                top: dropdown.y,
-                width: dropdown.width,
-              }}
-              className="overflow-hidden rounded-xl border border-[#E0E0E6] bg-white shadow-lg"
-            >
-              {['모든 교환글', '지금 교환', '일반 교환'].map((item) => {
-                const selected = item === mode;
-                return (
-                  <Pressable
-                    key={item}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected }}
-                    onPress={() => {
-                      setMode(item);
-                      setDropdown(null);
-                    }}
-                    className={`min-h-11 flex-row items-center justify-between px-3 ${selected ? 'bg-gray-50' : 'bg-white'}`}
-                  >
-                    <Text style={font} className="text-[13px] leading-[18px] text-[#2E2E33]">
-                      {item}
-                    </Text>
-                    {selected && (
-                      <Text style={font} className="text-[13px] text-[#2E2E33]">
-                        ✓
-                      </Text>
-                    )}
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
-        </View>
+      {menu && menu.sessionId === sessionId && (
+        <HomePostMenu postId={menu.id} sessionId={sessionId} onClose={() => setMenu(null)} />
       )}
       {!searchVisible && (
         <BottomSheet
@@ -467,7 +388,7 @@ export default function Home({ searchVisible = false }: { searchVisible?: boolea
               <ListItem
                 key={item}
                 label={item === '전체' ? '모든 지역' : item}
-                leading={{ type: 'checkbox', status: item === location ? 'checked' : 'unchecked' }}
+                leading={{ type: 'radio', checked: item === location }}
                 onPress={() => {
                   setLocation(item);
                   setRegionSheetVisible(false);
