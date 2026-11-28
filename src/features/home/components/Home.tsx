@@ -1,29 +1,32 @@
-import { router, useFocusEffect } from 'expo-router';
-import { useInfiniteQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/shared/api/useAuthStore';
-import { getHomePosts, homePostsKey } from '../api/homePosts';
-import { Chip, Icon, TopNavigation } from '@/shared/components';
+import { BottomSheet, Chip, Icon, ListItem, TopNavigation } from '@/shared/components';
 import { InteractionLayer } from '@/shared/components/decoration/InteractionLayer';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { router, useFocusEffect } from 'expo-router';
 import { PlusIcon } from 'phosphor-react-native/src/icons/Plus';
-import HomeHeader, { type MenuAnchor } from './HomeHeader';
-import ExchangePostCard from './ExchangePostCard';
-import { useExchangeStore } from '../store/useExchangeStore';
 import { type ComponentRef, useCallback, useEffect, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   BackHandler,
-  ActivityIndicator,
   FlatList,
   Pressable,
   RefreshControl,
   ScrollView,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getHomePosts, homePostsKey } from '../api/homePosts';
+import { useExchangeStore } from '../store/useExchangeStore';
+import ExchangePostCard from './ExchangePostCard';
+import HomeHeader, { type MenuAnchor } from './HomeHeader';
 
 const font = { fontFamily: 'Pretendard', includeFontPadding: false };
-const locations = ['전체', '홍대', '강남', '성수', '잠실'];
+const locations = ['모든 지역', '홍대', '용산', '성수', '신도림', '국제전자센터'];
+const regionSheetMinimumBottomInset = 34;
+const regionSheetHeaderHeight = 66;
 const categories = new Map<string, 'CHARACTER' | 'IDOL' | 'SPORTS' | 'ETC'>([
   ['캐릭터', 'CHARACTER'],
   ['아이돌', 'IDOL'],
@@ -49,6 +52,8 @@ export default function Home({ searchVisible = false }: { searchVisible?: boolea
   const screen = useRef<ComponentRef<typeof View>>(null);
   const [category, setCategory] = useState('전체');
   const [location, setLocation] = useState('전체');
+  const [regionSheetVisible, setRegionSheetVisible] = useState(false);
+  const { height: windowHeight } = useWindowDimensions();
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 15_000);
@@ -107,7 +112,6 @@ export default function Home({ searchVisible = false }: { searchVisible?: boolea
     }, [searchVisible, publishedPostId, dismissPublishedToast]),
   );
   const [dropdown, setDropdown] = useState<{
-    kind: 'location' | 'mode';
     x: number;
     y: number;
     width: number;
@@ -122,17 +126,17 @@ export default function Home({ searchVisible = false }: { searchVisible?: boolea
       return () => subscription.remove();
     }, [dropdown]),
   );
-  const openDropdown = (kind: 'location' | 'mode', anchor: MenuAnchor) => {
+  const openModeDropdown = (anchor: MenuAnchor) => {
     screen.current?.measureInWindow((screenX, screenY, screenWidth, screenHeight) => {
       const width = 160;
-      const menuHeight = (kind === 'location' ? locations.length : 3) * 44 + 2;
+      const menuHeight = 3 * 44 + 2;
       const x = Math.max(8, Math.min(anchor.x - screenX, screenWidth - width - 8));
       const below = anchor.y + anchor.height - screenY + 4;
       const y =
         below + menuHeight <= screenHeight - 8
           ? below
           : Math.max(8, anchor.y - screenY - menuHeight - 4);
-      setDropdown({ kind, x, y, width });
+      setDropdown({ x, y, width });
     });
   };
   const uniquePosts = new Map(
@@ -193,9 +197,12 @@ export default function Home({ searchVisible = false }: { searchVisible?: boolea
           location={location}
           category={category}
           mode={mode}
-          modeExpanded={dropdown?.kind === 'mode'}
-          onRegionPress={(anchor) => openDropdown('location', anchor)}
-          onModePress={(anchor) => openDropdown('mode', anchor)}
+          modeExpanded={!!dropdown}
+          onRegionPress={() => {
+            setDropdown(null);
+            setRegionSheetVisible(true);
+          }}
+          onModePress={openModeDropdown}
           onSearchPress={() => {
             setDropdown(null);
             router.push('/search');
@@ -409,25 +416,21 @@ export default function Home({ searchVisible = false }: { searchVisible?: boolea
               }}
               className="overflow-hidden rounded-xl border border-[#E0E0E6] bg-white shadow-lg"
             >
-              {(dropdown.kind === 'location'
-                ? locations
-                : ['모든 교환글', '지금 교환', '일반 교환']
-              ).map((item) => {
-                const selected = item === (dropdown.kind === 'location' ? location : mode);
+              {['모든 교환글', '지금 교환', '일반 교환'].map((item) => {
+                const selected = item === mode;
                 return (
                   <Pressable
                     key={item}
                     accessibilityRole="button"
                     accessibilityState={{ selected }}
                     onPress={() => {
-                      if (dropdown.kind === 'location') setLocation(item);
-                      else setMode(item);
+                      setMode(item);
                       setDropdown(null);
                     }}
                     className={`min-h-11 flex-row items-center justify-between px-3 ${selected ? 'bg-gray-50' : 'bg-white'}`}
                   >
                     <Text style={font} className="text-[13px] leading-[18px] text-[#2E2E33]">
-                      {dropdown.kind === 'location' && item === '전체' ? '모든 지역' : item}
+                      {item}
                     </Text>
                     {selected && (
                       <Text style={font} className="text-[13px] text-[#2E2E33]">
@@ -440,6 +443,39 @@ export default function Home({ searchVisible = false }: { searchVisible?: boolea
             </View>
           )}
         </View>
+      )}
+      {!searchVisible && (
+        <BottomSheet
+          visible={regionSheetVisible}
+          onRequestClose={() => setRegionSheetVisible(false)}
+          animationType="slide"
+          minimumBottomInset={regionSheetMinimumBottomInset}
+          title="검색 위치 설정"
+        >
+          <ScrollView
+            style={{
+              maxHeight:
+                windowHeight -
+                insets.top -
+                regionSheetHeaderHeight -
+                Math.max(insets.bottom, regionSheetMinimumBottomInset),
+            }}
+            contentContainerStyle={{ paddingBottom: 8 }}
+            alwaysBounceVertical={false}
+          >
+            {locations.map((item) => (
+              <ListItem
+                key={item}
+                label={item === '전체' ? '모든 지역' : item}
+                leading={{ type: 'checkbox', status: item === location ? 'checked' : 'unchecked' }}
+                onPress={() => {
+                  setLocation(item);
+                  setRegionSheetVisible(false);
+                }}
+              />
+            ))}
+          </ScrollView>
+        </BottomSheet>
       )}
     </View>
   );

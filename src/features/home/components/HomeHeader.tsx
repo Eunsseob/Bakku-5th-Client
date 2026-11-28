@@ -10,7 +10,7 @@ type Props = {
   location: string;
   category: string;
   mode: string;
-  onRegionPress: (anchor: MenuAnchor) => void;
+  onRegionPress: () => void;
   onSearchPress: () => void;
   onNotificationsPress: () => void;
   onCategoryChange: (category: string) => void;
@@ -19,30 +19,23 @@ type Props = {
 };
 
 export default function HomeHeader(props: Props) {
-  const regionAnchor = useRef<ComponentRef<typeof View>>(null);
   const modeAnchor = useRef<ComponentRef<typeof View>>(null);
   return (
     <View className="border-b border-[#E5E7EB] bg-white">
-      <View ref={regionAnchor} collapsable={false}>
-        <TopNavigation
-          type="home"
-          safeArea={false}
-          title={props.location === '전체' ? '모든 지역' : props.location}
-          onTitlePress={() =>
-            regionAnchor.current?.measureInWindow((x, y, width, height) =>
-              props.onRegionPress({ x: x + 16, y, width, height }),
-            )
-          }
-          actions={[
-            {
-              icon: MagnifyingGlassIcon,
-              accessibilityLabel: '굿즈 검색',
-              onPress: props.onSearchPress,
-            },
-            { icon: BellIcon, accessibilityLabel: '알림', onPress: props.onNotificationsPress },
-          ]}
-        />
-      </View>
+      <TopNavigation
+        type="home"
+        safeArea={false}
+        title={props.location === '전체' ? '모든 지역' : props.location}
+        onTitlePress={props.onRegionPress}
+        actions={[
+          {
+            icon: MagnifyingGlassIcon,
+            accessibilityLabel: '굿즈 검색',
+            onPress: props.onSearchPress,
+          },
+          { icon: BellIcon, accessibilityLabel: '알림', onPress: props.onNotificationsPress },
+        ]}
+      />
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
