@@ -2,6 +2,7 @@ import { useAuthStore } from '@/shared/api/useAuthStore';
 import { BottomSheet, Chip, EmptyState, Fab, ListItem, TopNavigation } from '@/shared/components';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
+import type { IconProps } from 'phosphor-react-native';
 import { WarningCircleIcon } from 'phosphor-react-native/src/icons/WarningCircle';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -48,6 +49,10 @@ const refreshScrollDistance = 48;
 
 function PostSeparator() {
   return <View className="h-4" />;
+}
+
+function EmptyFeedIcon(props: IconProps) {
+  return <WarningCircleIcon {...props} weight="fill" />;
 }
 
 export default function Home({ searchVisible = false }: { searchVisible?: boolean }) {
@@ -294,8 +299,7 @@ export default function Home({ searchVisible = false }: { searchVisible?: boolea
               ) : homeHasNoResults ? (
                 <EmptyState
                   className="!px-0"
-                  icon={WarningCircleIcon}
-                  iconWeight="fill"
+                  icon={EmptyFeedIcon}
                   title="이 지역에 등록된 게시글이 없어요."
                   description="다른 지역에서 교환할 사람을 찾아보세요."
                   action={{

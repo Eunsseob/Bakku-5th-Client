@@ -113,7 +113,6 @@ export default function HomePostMenu({
     <BottomSheet
       visible
       animationType="slide"
-      navigationBarTranslucent
       minimumBottomInset={34}
       onRequestClose={close}
     >
