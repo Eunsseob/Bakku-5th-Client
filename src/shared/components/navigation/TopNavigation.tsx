@@ -74,6 +74,7 @@ type SearchProps = CommonProps & {
   type: 'searchField';
   onBack?: () => void;
   backType?: 'back' | 'close';
+  onClose?: () => void;
   /** 검색 필드에 그대로 넘긴다. 돋보기 아이콘은 기본으로 숨긴다 */
   search: SearchFieldProps;
 };
@@ -168,15 +169,28 @@ function BackButton({
   );
 }
 
-function SearchBar({ onBack, backType, search }: SearchProps) {
+function SearchBar({ onBack, backType, onClose, search }: SearchProps) {
   return (
-    <View className={`h-14 flex-row items-center py-1.5 pr-4 ${onBack ? 'pl-1.5' : 'pl-4'}`}>
+    <View
+      className={`h-14 flex-row items-center py-1.5 ${onClose ? 'pr-1.5' : 'pr-4'} ${onBack ? 'pl-1.5' : 'pl-4'}`}
+    >
       {onBack ? <BackButton onBack={onBack} backType={backType} /> : null}
       <SearchField
         leadingIconVisible={false}
         {...search}
         className={`flex-1 ${search.className ?? ''}`}
       />
+      {onClose ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={onClose}
+          className="h-11 w-[45px] items-center justify-center"
+        >
+          <Text className="font-sans text-[14px] leading-5 tracking-[-0.14px] text-[#000A3161]">
+            닫기
+          </Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }

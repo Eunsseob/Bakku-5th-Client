@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { ArrowsClockwiseIcon } from 'phosphor-react-native/src/icons/ArrowsClockwise';
 import { NotePencilIcon } from 'phosphor-react-native/src/icons/NotePencil';
 import { XIcon } from 'phosphor-react-native/src/icons/X';
 import { useState } from 'react';
@@ -13,7 +14,7 @@ import { ToastOverlay } from '../common/ToastOverlay';
 import { MyPostItem } from './MyPostItem';
 
 // G-2 내 교환글 (2729:31360 교환가능 · G-2-1 예약중 2729:36282 · G-2-2 교환완료 2840:29965)
-// G-2-3 ⋮ 바텀시트 (2729:31372): 수정하기 · 삭제하기 · [닫기]
+// G-2-3 ⋮ 바텀시트 (2729:31372)
 // G-2-4 작성 글 없음 (2729:31352)
 // TODO: 내 교환글 목록 API 가 생기면 목업(MOCK_MY_POSTS) 대신 서버 데이터로 바꾼다
 
@@ -88,7 +89,6 @@ export function MyPostsScreen() {
         </ScrollView>
       )}
 
-      {/* G-2-3: ⋮ → 수정하기 · 삭제하기 · [닫기] */}
       <BottomSheet visible={!!menuPost} onRequestClose={closeMenu}>
         <View>
           <SheetAction
@@ -100,6 +100,23 @@ export function MyPostsScreen() {
               setToast('준비 중이에요');
             }}
           />
+          {menuPost && menuPost.status !== 'COMPLETED' && (
+            <SheetAction
+              icon={ArrowsClockwiseIcon}
+              iconColor="#00051E8D"
+              label="교환 완료로 바꾸기"
+              onPress={() => {
+                const targetId = menuPost.id;
+                closeMenu();
+                setPosts((list) =>
+                  list.map((post) =>
+                    post.id === targetId ? { ...post, status: 'COMPLETED' } : post,
+                  ),
+                );
+                setToast('교환 완료로 바꿨어요');
+              }}
+            />
+          )}
           <SheetAction
             icon={XIcon}
             label="삭제하기"

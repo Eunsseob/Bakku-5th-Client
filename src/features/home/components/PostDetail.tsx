@@ -14,10 +14,11 @@ import { type InfiniteData, useQuery, useQueryClient } from '@tanstack/react-que
 import { Image } from 'expo-image';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { CaretRightIcon } from 'phosphor-react-native/src/icons/CaretRight';
+import { ArrowsClockwiseIcon } from 'phosphor-react-native/src/icons/ArrowsClockwise';
 import { DotsThreeVerticalIcon } from 'phosphor-react-native/src/icons/DotsThreeVertical';
-import { FlagIcon } from 'phosphor-react-native/src/icons/Flag';
 import { ListBulletsIcon } from 'phosphor-react-native/src/icons/ListBullets';
 import { PencilSimpleIcon } from 'phosphor-react-native/src/icons/PencilSimple';
+import { SirenIcon } from 'phosphor-react-native/src/icons/Siren';
 import { TrashIcon } from 'phosphor-react-native/src/icons/Trash';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
@@ -848,7 +849,7 @@ export default function PostDetail() {
         <View className="pt-2">
           <ListItem
             label="신고하기"
-            leading={{ type: 'icon', icon: FlagIcon }}
+            leading={{ type: 'icon', icon: SirenIcon }}
             feedback="destructive"
             onPress={() => {
               closePostMenu();
@@ -893,7 +894,7 @@ export default function PostDetail() {
                 style={{ width: 48, height: 4, borderRadius: 2, backgroundColor: '#000D4B25' }}
               />
             </View>
-            <View style={{ height: 104, paddingHorizontal: 16, paddingTop: 8, overflow: 'hidden' }}>
+            <View style={{ paddingHorizontal: 16, paddingTop: 8, overflow: 'hidden' }}>
               {[
                 {
                   action: 'edit',
@@ -905,6 +906,15 @@ export default function PostDetail() {
                   disabledMessage: postEditLockedMessage,
                 },
                 {
+                  action: 'complete',
+                  label: '교환 완료로 바꾸기',
+                  icon: ArrowsClockwiseIcon,
+                  color: '#232531',
+                  iconColor: '#00051E8D',
+                  disabled: false,
+                  disabledMessage: undefined,
+                },
+                {
                   action: 'delete',
                   label: '삭제하기',
                   icon: TrashIcon,
@@ -913,70 +923,82 @@ export default function PostDetail() {
                   disabled: post.status !== 'AVAILABLE',
                   disabledMessage: postDeleteLockedMessage,
                 },
-              ].map(
-                ({
-                  action,
-                  label,
-                  icon: ActionIcon,
-                  color,
-                  iconColor,
-                  disabled,
-                  disabledMessage,
-                }) => (
-                  <Pressable
-                    key={label}
-                    accessibilityRole="button"
-                    accessibilityState={{ disabled: disabled || deleteBusy }}
-                    accessibilityHint={disabled ? disabledMessage : undefined}
-                    disabled={disabled || deleteBusy}
-                    onPress={() => {
-                      if (action === 'delete') {
-                        void confirmDelete();
-                        return;
-                      }
-                      setPostMenuOpen(false);
-                      router.push({ pathname: '/post/edit/[id]', params: { id: String(post.id) } });
-                    }}
-                    style={{
-                      height: 48,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {({ pressed }) => (
-                      <>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                          <ActionIcon size={20} color={disabled ? '#99A1AF' : iconColor} />
-                          <View>
-                            <Text
-                              style={{
-                                fontFamily: 'Pretendard',
-                                color: disabled ? '#99A1AF' : color,
-                                fontSize: 16,
-                                lineHeight: 22,
-                                letterSpacing: -0.16,
-                                includeFontPadding: false,
-                                transform: [{ translateY: -1.4 }],
-                              }}
-                            >
-                              {label}
-                            </Text>
-                            {disabled && (
-                              <Text className="font-sans text-[12px] leading-4 text-[#6A7282]">
-                                {disabledMessage}
+              ]
+                .filter(({ action }) => action !== 'complete' || post.status !== 'COMPLETED')
+                .map(
+                  ({
+                    action,
+                    label,
+                    icon: ActionIcon,
+                    color,
+                    iconColor,
+                    disabled,
+                    disabledMessage,
+                  }) => (
+                    <Pressable
+                      key={label}
+                      accessibilityRole="button"
+                      accessibilityState={{ disabled: disabled || deleteBusy }}
+                      accessibilityHint={disabled ? disabledMessage : undefined}
+                      disabled={disabled || deleteBusy}
+                      onPress={() => {
+                        if (action === 'delete') {
+                          void confirmDelete();
+                          return;
+                        }
+                        setPostMenuOpen(false);
+                        if (action === 'complete') {
+                          Alert.alert(
+                            '교환 완료로 바꾸기',
+                            '게시글에서 바로 교환을 완료하는 기능은 준비 중이에요.',
+                          );
+                          return;
+                        }
+                        router.push({
+                          pathname: '/post/edit/[id]',
+                          params: { id: String(post.id) },
+                        });
+                      }}
+                      style={{
+                        height: 48,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {({ pressed }) => (
+                        <>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <ActionIcon size={20} color={disabled ? '#99A1AF' : iconColor} />
+                            <View>
+                              <Text
+                                style={{
+                                  fontFamily: 'Pretendard',
+                                  color: disabled ? '#99A1AF' : color,
+                                  fontSize: 16,
+                                  lineHeight: 22,
+                                  letterSpacing: -0.16,
+                                  includeFontPadding: false,
+                                  transform: [{ translateY: -1.4 }],
+                                }}
+                              >
+                                {label}
                               </Text>
-                            )}
+                              {disabled && (
+                                <Text className="font-sans text-[12px] leading-4 text-[#6A7282]">
+                                  {disabledMessage}
+                                </Text>
+                              )}
+                            </View>
                           </View>
-                        </View>
-                        <CaretRightIcon size={20} color="#000A3161" />
-                        <InteractionLayer pressed={pressed} color="#000212D1" />
-                      </>
-                    )}
-                  </Pressable>
-                ),
-              )}
+                          <CaretRightIcon size={20} color="#000A3161" />
+                          <InteractionLayer pressed={pressed} color="#000212D1" />
+                        </>
+                      )}
+                    </Pressable>
+                  ),
+                )}
             </View>
             <View style={{ height: 72, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 8 }}>
               <Pressable
