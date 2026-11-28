@@ -110,12 +110,7 @@ export default function HomePostMenu({
   };
 
   return (
-    <BottomSheet
-      visible
-      animationType="slide"
-      minimumBottomInset={34}
-      onRequestClose={close}
-    >
+    <BottomSheet visible animationType="slide" minimumBottomInset={34} onRequestClose={close}>
       {detail.isFetching ? (
         <View className="h-14 items-center justify-center">
           <ActivityIndicator accessibilityLabel="게시글 메뉴 불러오는 중" />
